@@ -7,7 +7,7 @@ interface SettingsProps {
 }
 
 export default function Settings({ isOpen, onClose }: SettingsProps) {
-  const { apiKey, model, setApiKey, setModel } = useSettingsStore();
+  const { apiKey, model, theme, setApiKey, setModel, toggleTheme } = useSettingsStore();
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModel, setLocalModel] = useState(model);
   const [showKey, setShowKey] = useState(false);
@@ -35,17 +35,17 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
 
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-800">Settings</h2>
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Settings</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6 text-gray-600"
+                className="h-6 w-6 text-gray-600 dark:text-gray-400"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -62,19 +62,65 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
 
           {/* Content */}
           <div className="px-6 py-6 space-y-6">
+            {/* Theme Toggle */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Appearance
+              </label>
+              <button
+                onClick={toggleTheme}
+                className="flex items-center justify-between w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <span className="text-gray-700 dark:text-gray-300">
+                  {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+                </span>
+                {theme === 'dark' ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-600 dark:text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-gray-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+
             {/* API Key Section */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Anthropic API Key
               </label>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Your API key is stored locally in your browser and is never sent to our servers.
                 Get your API key from{' '}
                 <a
                   href="https://console.anthropic.com/settings/keys"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
                   Anthropic Console
                 </a>
@@ -85,12 +131,12 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   value={localApiKey}
                   onChange={(e) => setLocalApiKey(e.target.value)}
                   placeholder="sk-ant-api03-..."
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowKey(!showKey)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
                 >
                   {showKey ? (
                     <svg
@@ -135,13 +181,13 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
 
             {/* Model Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 AI Model
               </label>
               <select
                 value={localModel}
                 onChange={(e) => setLocalModel(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="claude-3-5-sonnet-20241022">
                   Claude 3.5 Sonnet (Recommended - Balanced)
@@ -153,18 +199,18 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   Claude 3 Opus (Most Capable)
                 </option>
               </select>
-              <p className="text-sm text-gray-600 mt-2">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                 Choose the AI model that best fits your needs. Sonnet offers the best balance of
                 speed and quality.
               </p>
             </div>
 
             {/* Info Section */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <div className="flex items-start space-x-3">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-blue-600 mt-0.5"
+                  className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -176,7 +222,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                     d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <div className="text-sm text-blue-800">
+                <div className="text-sm text-blue-800 dark:text-blue-200">
                   <p className="font-medium mb-1">Privacy & Security</p>
                   <p>
                     Your API key is stored only in your browser's local storage and is sent directly
@@ -188,10 +234,10 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               Cancel
             </button>

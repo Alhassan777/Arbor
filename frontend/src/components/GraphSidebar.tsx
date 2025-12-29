@@ -120,15 +120,15 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
 
   if (isCollapsed) {
     return (
-      <div className="w-12 bg-white border-r border-gray-200 flex items-start justify-center pt-4">
+      <div className="w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-start justify-center pt-4">
         <button
           onClick={() => setIsCollapsed(false)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           title="Expand sidebar"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-600"
+            className="h-5 w-5 text-gray-600 dark:text-gray-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -146,19 +146,19 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
   }
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700">Conversation Tree</h2>
+      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversation Tree</h2>
         <div className="flex items-center space-x-1">
           <button
             onClick={onOpenSettings}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             title="Settings"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-gray-600"
+              className="h-4 w-4 text-gray-600 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -179,12 +179,12 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
           </button>
           <button
             onClick={() => setIsCollapsed(true)}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             title="Collapse sidebar"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4 text-gray-600"
+              className="h-4 w-4 text-gray-600 dark:text-gray-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
