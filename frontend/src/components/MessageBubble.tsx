@@ -30,7 +30,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       window.getSelection()?.removeAllRanges();
       setShowBranchButton(false);
       setSelectedText('');
-      addToast('Branch created from selection', 'success');
+      addToast('Branch created with focused context', 'success');
     }
   };
 
@@ -115,7 +115,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
               <button
                 onClick={handleBranch}
                 className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
-                title="Branch conversation"
+                title="Create a new branch from here"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -142,8 +142,9 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             <button
               onClick={handleBranchFromSelection}
               className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+              title="Create a branch focused on the selected text"
             >
-              Branch from selection
+              Branch with this context
             </button>
           </div>
         )}

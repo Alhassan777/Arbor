@@ -191,28 +191,9 @@ router.post("/conversation/:id/branch", async (req, res) => {
       contextPrompt += `The user wants to focus on: "${selectedText}"\n`;
     }
 
-    // Generate a smart title for the branch
-    let branchTitle = "New Branch";
-    if (selectedText) {
-      // Use AI to generate a concise title based on selected text
-      try {
-        const titlePrompt = `Generate a short, concise title (3-6 words) for a conversation branch that focuses on: "${selectedText}"\n\nRespond with ONLY the title, nothing else.`;
-        const titleMessages = [
-          {
-            id: "temp",
-            role: "user" as const,
-            content: titlePrompt,
-            timestamp: new Date(),
-          },
-        ];
-        branchTitle = await generateTitle(titleMessages, apiKey);
-      } catch (error) {
-        // Fallback to truncated text if AI title generation fails
-        branchTitle = `Branch: ${selectedText.substring(0, 30)}${
-          selectedText.length > 30 ? "..." : ""
-        }`;
-      }
-    }
+    // All branches start with a clean title
+    // The title will be auto-generated after messages are sent
+    const branchTitle = "New Branch";
 
     // Create new branch node
     const newNode = await prisma.conversationNode.create({
