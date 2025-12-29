@@ -24,7 +24,7 @@ A web application that enables branching conversations with AI, allowing users t
 - Node.js + Express
 - TypeScript
 - PostgreSQL + Prisma ORM
-- Claude API (Anthropic)
+- Gemini API (Google AI)
 
 ## Getting Started
 
@@ -32,7 +32,7 @@ A web application that enables branching conversations with AI, allowing users t
 
 - Node.js 18+ and npm
 - PostgreSQL database
-- Anthropic API key
+- Google Gemini API key (get it from [Google AI Studio](https://aistudio.google.com/app/apikey))
 
 ### Installation
 
@@ -53,10 +53,10 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and add your database URL and Anthropic API key:
+Edit `.env` and add your database URL and Gemini API key:
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/branchchat?schema=public"
-ANTHROPIC_API_KEY="your-api-key-here"
+GEMINI_API_KEY="your-gemini-api-key-here"
 PORT=3001
 ```
 
@@ -103,7 +103,7 @@ Neur_chat/
 │   │   ├── routes/
 │   │   │   └── conversation.ts    # API routes
 │   │   ├── services/
-│   │   │   └── claude.ts          # Claude API integration
+│   │   │   └── gemini.ts          # Gemini API integration
 │   │   ├── types/
 │   │   │   └── index.ts           # TypeScript types
 │   │   └── index.ts               # Express server
@@ -148,7 +148,7 @@ Neur_chat/
 ### Starting a Conversation
 1. The app automatically creates a new conversation tree when you first load it
 2. Type a message in the input box and press Send
-3. The AI will respond using Claude
+3. The AI will respond using Google Gemini
 
 ### Branching from a Response
 1. Hover over any AI response to see the branch icon

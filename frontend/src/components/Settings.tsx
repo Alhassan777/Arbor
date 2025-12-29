@@ -111,18 +111,18 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
             {/* API Key Section */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Anthropic API Key
+                Gemini API Key
               </label>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Your API key is stored locally in your browser and is never sent to our servers.
                 Get your API key from{' '}
                 <a
-                  href="https://console.anthropic.com/settings/keys"
+                  href="https://aistudio.google.com/app/apikey"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Anthropic Console
+                  Google AI Studio
                 </a>
               </p>
               <div className="relative">
@@ -130,7 +130,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   type={showKey ? 'text' : 'password'}
                   value={localApiKey}
                   onChange={(e) => setLocalApiKey(e.target.value)}
-                  placeholder="sk-ant-api03-..."
+                  placeholder="AIza..."
                   className="w-full px-4 py-3 pr-12 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                 />
                 <button
@@ -189,18 +189,18 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                 onChange={(e) => setLocalModel(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="claude-3-5-sonnet-20241022">
-                  Claude 3.5 Sonnet (Recommended - Balanced)
+                <option value="gemini-1.5-flash">
+                  Gemini 1.5 Flash (Recommended - Fast & Efficient)
                 </option>
-                <option value="claude-3-5-haiku-20241022">
-                  Claude 3.5 Haiku (Fast & Affordable)
+                <option value="gemini-1.5-pro">
+                  Gemini 1.5 Pro (Most Capable)
                 </option>
-                <option value="claude-3-opus-20240229">
-                  Claude 3 Opus (Most Capable)
+                <option value="gemini-2.0-flash-exp">
+                  Gemini 2.0 Flash Experimental (Latest)
                 </option>
               </select>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                Choose the AI model that best fits your needs. Sonnet offers the best balance of
+                Choose the AI model that best fits your needs. Flash offers the best balance of
                 speed and quality.
               </p>
             </div>
@@ -226,7 +226,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   <p className="font-medium mb-1">Privacy & Security</p>
                   <p>
                     Your API key is stored only in your browser's local storage and is sent directly
-                    to Anthropic's servers. We never see or store your API key on our servers.
+                    to Google's servers. We never see or store your API key on our servers.
                   </p>
                 </div>
               </div>

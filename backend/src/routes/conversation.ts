@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { generateResponse, generateTitle, generateSummary } from '../services/claude';
+import { generateResponse, generateTitle, generateSummary } from '../services/gemini';
 import type { CreateBranchRequest, SendMessageRequest } from '../types';
 
 const router = Router();
