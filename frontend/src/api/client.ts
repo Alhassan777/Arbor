@@ -8,36 +8,48 @@ import type {
 
 const API_BASE = '/api';
 
+function getHeaders(apiKey?: string, model?: string): HeadersInit {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['X-API-Key'] = apiKey;
+  if (model) headers['X-Model'] = model;
+  return headers;
+}
+
 export const api = {
   // Create a new root conversation
-  async createConversation(): Promise<ConversationTree> {
+  async createConversation(apiKey?: string, model?: string): Promise<ConversationTree> {
     const response = await fetch(`${API_BASE}/conversation`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(apiKey, model),
     });
     if (!response.ok) throw new Error('Failed to create conversation');
     return response.json();
   },
 
   // Send a message and get AI response
-  async sendMessage(conversationId: string, content: string): Promise<Message> {
+  async sendMessage(conversationId: string, content: string, apiKey?: string, model?: string): Promise<Message> {
     const response = await fetch(`${API_BASE}/conversation/${conversationId}/message`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(apiKey, model),
       body: JSON.stringify({ content }),
     });
-    if (!response.ok) throw new Error('Failed to send message');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to send message' }));
+      throw new Error(error.error || 'Failed to send message');
+    }
     return response.json();
   },
 
   // Create a branch from a message
   async createBranch(
     conversationId: string,
-    data: CreateBranchRequest
+    data: CreateBranchRequest,
+    apiKey?: string,
+    model?: string
   ): Promise<ConversationNode> {
     const response = await fetch(`${API_BASE}/conversation/${conversationId}/branch`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getHeaders(apiKey, model),
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to create branch');

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ConversationTree, ConversationNode, Message } from '../types';
 import { api } from '../api/client';
+import { useSettingsStore } from './settingsStore';
 
 interface ConversationState {
   tree: ConversationTree | null;
@@ -27,7 +28,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   initializeNewTree: async () => {
     set({ isLoading: true, error: null });
     try {
-      const tree = await api.createConversation();
+      const { apiKey, model } = useSettingsStore.getState();
+      const tree = await api.createConversation(apiKey, model);
       set({
         tree,
         currentNodeId: tree.rootNodeId,
@@ -68,7 +70,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const message = await api.sendMessage(currentNodeId, content);
+      const { apiKey, model } = useSettingsStore.getState();
+      const message = await api.sendMessage(currentNodeId, content, apiKey, model);
 
       // Update the tree with the new message
       const updatedNodes = { ...tree.nodes };
@@ -98,10 +101,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
+      const { apiKey, model } = useSettingsStore.getState();
       const newNode = await api.createBranch(currentNodeId, {
         sourceMessageId,
         selectedText,
-      });
+      }, apiKey, model);
 
       // Add the new node to the tree
       const updatedNodes = { ...tree.nodes, [newNode.id]: newNode };
