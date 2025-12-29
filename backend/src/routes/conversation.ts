@@ -12,6 +12,26 @@ import type { CreateBranchRequest, SendMessageRequest } from "../types";
 const router = Router();
 const prisma = new PrismaClient();
 
+// Helper to normalize API key - treat empty strings as undefined to use .env fallback
+// Also validate that it looks like a valid Gemini API key (starts with "AIza" and is at least 30 chars)
+function getApiKey(headerValue: string | undefined): string | undefined {
+  if (!headerValue) return undefined;
+
+  const trimmed = headerValue.trim();
+
+  // If empty or too short, ignore it
+  if (!trimmed || trimmed.length < 30) {
+    return undefined;
+  }
+
+  // Gemini API keys start with "AIza"
+  if (!trimmed.startsWith("AIza")) {
+    return undefined;
+  }
+
+  return trimmed;
+}
+
 // Create new root conversation
 router.post("/conversation", async (_req, res) => {
   try {
@@ -86,7 +106,7 @@ router.post("/conversation/:id/message", async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body as SendMessageRequest;
-    const apiKey = req.headers["x-api-key"] as string | undefined;
+    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
     const model = req.headers["x-model"] as string | undefined;
 
     // Get the conversation node
@@ -132,7 +152,10 @@ router.post("/conversation/:id/message", async (req, res) => {
     });
 
     let updatedTitle = node.title;
-    if (messageCount === 2 && (node.title === "New Conversation" || node.title === "New Branch")) {
+    if (
+      messageCount === 2 &&
+      (node.title === "New Conversation" || node.title === "New Branch")
+    ) {
       const title = await generateTitle(
         [...allMessages, assistantMessage],
         apiKey
@@ -161,7 +184,7 @@ router.post("/conversation/:id/branch", async (req, res) => {
   try {
     const { id } = req.params;
     const { sourceMessageId, selectedText } = req.body as CreateBranchRequest;
-    const apiKey = req.headers["x-api-key"] as string | undefined;
+    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
 
     // Get parent conversation
     const parentNode = await prisma.conversationNode.findUnique({
@@ -305,7 +328,7 @@ router.delete("/conversation/:id", async (req, res) => {
 router.post("/conversation/:id/summarize", async (req, res) => {
   try {
     const { id } = req.params;
-    const apiKey = req.headers["x-api-key"] as string | undefined;
+    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
 
     const node = await prisma.conversationNode.findUnique({
       where: { id },
@@ -334,7 +357,7 @@ router.post("/conversation/:id/summarize", async (req, res) => {
 router.post("/ai/label-connection", async (req, res) => {
   try {
     const { prompt } = req.body;
-    const apiKey = req.headers["x-api-key"] as string | undefined;
+    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
@@ -367,7 +390,8 @@ router.get("/tree/:id/connection-labels", async (req, res) => {
 // Create or update connection label
 router.post("/connection-label", async (req, res) => {
   try {
-    const { connectionId, treeId, type, text, aiGenerated, userEdited } = req.body;
+    const { connectionId, treeId, type, text, aiGenerated, userEdited } =
+      req.body;
 
     const label = await prisma.connectionLabel.upsert({
       where: { connectionId },
