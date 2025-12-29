@@ -12,24 +12,13 @@ import { useConversationStore } from '../store/conversationStore';
 import { Icons } from './ui/Icons';
 
 interface GraphSidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
   onOpenSettings: () => void;
 }
 
-export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+export default function GraphSidebar({ isCollapsed, onToggle, onOpenSettings }: GraphSidebarProps) {
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
-
-  // Auto-collapse on mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      const isMobile = window.innerWidth < 768;
-      setIsCollapsed(isMobile);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Convert conversation tree to React Flow nodes and edges
   const { nodes: flowNodes, edges: flowEdges } = useMemo(() => {
@@ -133,27 +122,15 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
 
   if (isCollapsed) {
     return (
-      <>
-        {/* Collapsed sidebar - hidden on mobile, small strip on desktop */}
-        <div className="hidden md:flex w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 items-start justify-center pt-4">
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Expand sidebar"
-          >
-            <Icons.ChevronRight className="text-gray-600 dark:text-gray-400" />
-          </button>
-        </div>
-
-        {/* Floating toggle button for mobile */}
+      <div className="hidden md:flex w-12 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 items-start justify-center pt-4">
         <button
-          onClick={() => setIsCollapsed(false)}
-          className="md:hidden fixed top-4 left-4 z-50 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
-          title="Open menu"
+          onClick={onToggle}
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          title="Expand graph view"
         >
-          <Icons.Menu />
+          <Icons.ChevronLeft className="text-gray-600 dark:text-gray-400" />
         </button>
-      </>
+      </div>
     );
   }
 
@@ -162,14 +139,14 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
       {/* Backdrop for mobile */}
       <div
         className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-        onClick={() => setIsCollapsed(true)}
+        onClick={onToggle}
       />
 
       {/* Sidebar */}
-      <div className="w-80 md:w-80 fixed md:relative inset-y-0 left-0 z-50 md:z-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+      <div className="w-80 md:w-80 fixed md:relative inset-y-0 right-0 z-50 md:z-auto bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversation Tree</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Graph View</h2>
           <div className="flex items-center space-x-1">
             <button
               onClick={onOpenSettings}
@@ -179,11 +156,11 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
               <Icons.Settings className="text-gray-600 dark:text-gray-400" />
             </button>
             <button
-              onClick={() => setIsCollapsed(true)}
+              onClick={onToggle}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-              title="Collapse sidebar"
+              title="Collapse graph view"
             >
-              <Icons.ChevronLeft className="text-gray-600 dark:text-gray-400" />
+              <Icons.ChevronRight className="text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>

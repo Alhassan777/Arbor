@@ -3,6 +3,7 @@ import { useConversationStore } from './store/conversationStore';
 import { useToastStore } from './store/toastStore';
 import { useSettingsStore } from './store/settingsStore';
 import GraphSidebar from './components/GraphSidebar';
+import ChatHistorySidebar from './components/ChatHistorySidebar';
 import ChatArea from './components/ChatArea';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
@@ -12,6 +13,8 @@ function App() {
   const { toasts, removeToast } = useToastStore();
   const { apiKey, theme } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [isChatHistoryCollapsed, setIsChatHistoryCollapsed] = useState(false);
+  const [isGraphCollapsed, setIsGraphCollapsed] = useState(true);
 
   useEffect(() => {
     // Initialize a new conversation tree on mount if none exists
@@ -52,8 +55,16 @@ function App() {
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <GraphSidebar onOpenSettings={() => setShowSettings(true)} />
+      <ChatHistorySidebar
+        isCollapsed={isChatHistoryCollapsed}
+        onToggle={() => setIsChatHistoryCollapsed(!isChatHistoryCollapsed)}
+      />
       <ChatArea />
+      <GraphSidebar
+        isCollapsed={isGraphCollapsed}
+        onToggle={() => setIsGraphCollapsed(!isGraphCollapsed)}
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 

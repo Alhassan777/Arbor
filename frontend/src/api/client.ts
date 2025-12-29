@@ -27,7 +27,7 @@ export const api = {
   },
 
   // Send a message and get AI response
-  async sendMessage(conversationId: string, content: string, apiKey?: string, model?: string): Promise<Message> {
+  async sendMessage(conversationId: string, content: string, apiKey?: string, model?: string): Promise<{ userMessage: Message; assistantMessage: Message; updatedTitle: string }> {
     const response = await fetch(`${API_BASE}/conversation/${conversationId}/message`, {
       method: 'POST',
       headers: getHeaders(apiKey, model),

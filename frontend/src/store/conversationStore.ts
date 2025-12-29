@@ -71,15 +71,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { apiKey, model } = useSettingsStore.getState();
-      const message = await api.sendMessage(currentNodeId, content, apiKey, model);
+      const { userMessage, assistantMessage, updatedTitle } = await api.sendMessage(currentNodeId, content, apiKey, model);
 
-      // Update the tree with the new message
+      // Update the tree with both messages and updated title
       const updatedNodes = { ...tree.nodes };
       const currentNode = updatedNodes[currentNodeId];
       if (currentNode) {
         updatedNodes[currentNodeId] = {
           ...currentNode,
-          messages: [...currentNode.messages, message],
+          messages: [...currentNode.messages, userMessage, assistantMessage],
+          title: updatedTitle,
         };
       }
 

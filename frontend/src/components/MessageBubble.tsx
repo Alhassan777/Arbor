@@ -128,22 +128,24 @@ export default function MessageBubble({ message, onInsertText }: MessageBubblePr
         {/* Action Buttons */}
         <div
           className={cn(
-            'absolute top-3 flex gap-1',
-            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-            isUser ? '-left-14 md:-left-16' : '-right-14 md:-right-16'
+            'absolute top-3 flex gap-1.5',
+            'opacity-40 group-hover:opacity-100 hover:opacity-100 transition-opacity duration-200',
+            isUser ? '-left-16 md:-left-20' : '-right-16 md:-right-20'
           )}
         >
           <IconButton
-            icon={<Icons.Copy className="text-gray-600 dark:text-gray-400" />}
+            icon={<Icons.Copy className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
             label="Copy message"
             onClick={handleCopy}
+            className="bg-white dark:bg-gray-800 shadow-md hover:shadow-lg"
           />
 
           {!isUser && (
             <IconButton
-              icon={<Icons.Branch className="text-gray-600 dark:text-gray-400" />}
+              icon={<Icons.Branch className="h-4 w-4 text-gray-600 dark:text-gray-400" />}
               label="Create a new branch from here"
               onClick={handleBranch}
+              className="bg-white dark:bg-gray-800 shadow-md hover:shadow-lg"
             />
           )}
         </div>

@@ -125,12 +125,13 @@ router.post("/conversation/:id/message", async (req, res) => {
       },
     });
 
-    // Auto-generate title if this is the second exchange
+    // Auto-generate title after first exchange (2 messages: user + assistant)
     const messageCount = await prisma.message.count({
       where: { conversationId: id },
     });
 
-    if (messageCount >= 4 && node.title === "New Conversation") {
+    let updatedTitle = node.title;
+    if (messageCount === 2 && (node.title === "New Conversation" || node.title === "New Branch")) {
       const title = await generateTitle(
         [...allMessages, assistantMessage],
         apiKey
@@ -139,9 +140,15 @@ router.post("/conversation/:id/message", async (req, res) => {
         where: { id },
         data: { title },
       });
+      updatedTitle = title;
     }
 
-    res.json(assistantMessage);
+    // Return both messages and updated title
+    res.json({
+      userMessage,
+      assistantMessage,
+      updatedTitle,
+    });
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ error: "Failed to send message" });

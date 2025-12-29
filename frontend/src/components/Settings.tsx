@@ -65,9 +65,9 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
                 </span>
                 {theme === 'dark' ? (
-                  <Icons.Moon className="text-gray-600 dark:text-gray-400" />
+                  <Icons.Moon className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                 ) : (
-                  <Icons.Sun className="text-gray-600" />
+                  <Icons.Sun className="h-4 w-4 text-gray-600" />
                 )}
               </button>
             </div>
