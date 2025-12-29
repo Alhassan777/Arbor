@@ -9,7 +9,7 @@ export async function generateResponse(
   messages: Message[],
   systemPrompt?: string,
   apiKey?: string,
-  model: string = 'gemini-1.5-flash'
+  model: string = 'gemini-2.5-flash'
 ): Promise<string> {
   const client = getClient(apiKey);
   const genModel = client.getGenerativeModel({
@@ -39,7 +39,7 @@ export async function generateTitle(
   apiKey?: string
 ): Promise<string> {
   const client = getClient(apiKey);
-  const genModel = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const genModel = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const conversationText = messages
     .map(m => `${m.role}: ${m.content}`)
@@ -58,7 +58,7 @@ export async function generateSummary(
   apiKey?: string
 ): Promise<string> {
   const client = getClient(apiKey);
-  const genModel = client.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const genModel = client.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const conversationText = messages
     .map(m => `${m.role}: ${m.content}`)

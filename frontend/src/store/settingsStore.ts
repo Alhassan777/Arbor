@@ -15,7 +15,7 @@ export const useSettingsStore = create<SettingsState>()(
   persist(
     (set) => ({
       apiKey: '',
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
       theme: 'light',
 
       setApiKey: (key: string) => set({ apiKey: key }),

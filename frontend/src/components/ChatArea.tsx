@@ -27,6 +27,13 @@ export default function ChatArea() {
 
   const currentNode = tree && currentNodeId ? tree.nodes[currentNodeId] : null;
 
+  // Pre-fill input with selected text if this is a new branch with no messages
+  useEffect(() => {
+    if (currentNode?.branchSelectedText && currentNode.messages.length === 0) {
+      setInput(currentNode.branchSelectedText);
+    }
+  }, [currentNodeId, currentNode?.branchSelectedText, currentNode?.messages.length]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentNode?.messages]);

@@ -189,14 +189,17 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                 onChange={(e) => setLocalModel(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
+                <option value="gemini-2.5-flash">
+                  Gemini 2.5 Flash (Recommended - Latest & Fast)
+                </option>
                 <option value="gemini-1.5-flash">
-                  Gemini 1.5 Flash (Recommended - Fast & Efficient)
+                  Gemini 1.5 Flash (Fast & Efficient)
                 </option>
                 <option value="gemini-1.5-pro">
                   Gemini 1.5 Pro (Most Capable)
                 </option>
                 <option value="gemini-2.0-flash-exp">
-                  Gemini 2.0 Flash Experimental (Latest)
+                  Gemini 2.0 Flash Experimental
                 </option>
               </select>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">

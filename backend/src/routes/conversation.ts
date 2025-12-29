@@ -1,43 +1,70 @@
-import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { generateResponse, generateTitle, generateSummary } from '../services/gemini';
-import type { CreateBranchRequest, SendMessageRequest } from '../types';
+import { Router } from "express";
+import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
+import {
+  generateResponse,
+  generateTitle,
+  generateSummary,
+} from "../services/gemini";
+import type { CreateBranchRequest, SendMessageRequest } from "../types";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Create new root conversation
-router.post('/conversation', async (_req, res) => {
+router.post("/conversation", async (_req, res) => {
   try {
-    const tree = await prisma.conversationTree.create({
-      data: {
-        nodes: {
-          create: {
-            title: 'New Conversation',
+    // Use transaction to handle circular dependency between tree and node
+    const result = await prisma.$transaction(async (tx) => {
+      // First create the tree with a temporary rootNodeId (will be updated)
+      const treeId = randomUUID();
+      const tempRootNodeId = randomUUID();
+
+      // Create the tree
+      await tx.conversationTree.create({
+        data: {
+          id: treeId,
+          rootNodeId: tempRootNodeId, // Temporary, will be updated
+        },
+      });
+
+      // Create the root node
+      const rootNode = await tx.conversationNode.create({
+        data: {
+          id: tempRootNodeId,
+          title: "New Conversation",
+          treeId: treeId,
+        },
+      });
+
+      // Update the tree with the actual rootNodeId
+      await tx.conversationTree.update({
+        where: { id: treeId },
+        data: { rootNodeId: rootNode.id },
+      });
+
+      // Fetch the complete tree with all relations
+      return await tx.conversationTree.findUnique({
+        where: { id: treeId },
+        include: {
+          nodes: {
+            include: {
+              messages: true,
+            },
           },
         },
-      },
-      include: {
-        nodes: {
-          include: {
-            messages: true,
-          },
-        },
-      },
+      });
     });
 
-    // Set the rootNodeId to the first node
-    const rootNode = tree.nodes[0];
-    await prisma.conversationTree.update({
-      where: { id: tree.id },
-      data: { rootNodeId: rootNode.id },
-    });
+    if (!result) {
+      throw new Error("Failed to create conversation tree");
+    }
 
     // Format response
     const formattedTree = {
-      id: tree.id,
-      rootNodeId: rootNode.id,
-      nodes: tree.nodes.reduce((acc, node) => {
+      id: result.id,
+      rootNodeId: result.rootNodeId,
+      nodes: result.nodes.reduce((acc, node) => {
         acc[node.id] = {
           ...node,
           messages: node.messages,
@@ -48,18 +75,18 @@ router.post('/conversation', async (_req, res) => {
 
     res.json(formattedTree);
   } catch (error) {
-    console.error('Error creating conversation:', error);
-    res.status(500).json({ error: 'Failed to create conversation' });
+    console.error("Error creating conversation:", error);
+    res.status(500).json({ error: "Failed to create conversation" });
   }
 });
 
 // Send message and get AI response
-router.post('/conversation/:id/message', async (req, res) => {
+router.post("/conversation/:id/message", async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body as SendMessageRequest;
-    const apiKey = req.headers['x-api-key'] as string | undefined;
-    const model = req.headers['x-model'] as string | undefined;
+    const apiKey = req.headers["x-api-key"] as string | undefined;
+    const model = req.headers["x-model"] as string | undefined;
 
     // Get the conversation node
     const node = await prisma.conversationNode.findUnique({
@@ -68,26 +95,31 @@ router.post('/conversation/:id/message', async (req, res) => {
     });
 
     if (!node) {
-      return res.status(404).json({ error: 'Conversation not found' });
+      return res.status(404).json({ error: "Conversation not found" });
     }
 
     // Create user message
     const userMessage = await prisma.message.create({
       data: {
-        role: 'user',
+        role: "user",
         content,
         conversationId: id,
       },
     });
 
-    // Get AI response
+    // Get AI response - include branch context if this is a branched conversation
     const allMessages = [...node.messages, userMessage];
-    const aiResponse = await generateResponse(allMessages, undefined, apiKey, model);
+    const aiResponse = await generateResponse(
+      allMessages,
+      node.summary || undefined,
+      apiKey,
+      model
+    );
 
     // Create assistant message
     const assistantMessage = await prisma.message.create({
       data: {
-        role: 'assistant',
+        role: "assistant",
         content: aiResponse,
         conversationId: id,
       },
@@ -98,8 +130,11 @@ router.post('/conversation/:id/message', async (req, res) => {
       where: { conversationId: id },
     });
 
-    if (messageCount >= 4 && node.title === 'New Conversation') {
-      const title = await generateTitle([...allMessages, assistantMessage], apiKey);
+    if (messageCount >= 4 && node.title === "New Conversation") {
+      const title = await generateTitle(
+        [...allMessages, assistantMessage],
+        apiKey
+      );
       await prisma.conversationNode.update({
         where: { id },
         data: { title },
@@ -108,17 +143,17 @@ router.post('/conversation/:id/message', async (req, res) => {
 
     res.json(assistantMessage);
   } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error("Error sending message:", error);
+    res.status(500).json({ error: "Failed to send message" });
   }
 });
 
 // Create branch from a message
-router.post('/conversation/:id/branch', async (req, res) => {
+router.post("/conversation/:id/branch", async (req, res) => {
   try {
     const { id } = req.params;
     const { sourceMessageId, selectedText } = req.body as CreateBranchRequest;
-    const apiKey = req.headers['x-api-key'] as string | undefined;
+    const apiKey = req.headers["x-api-key"] as string | undefined;
 
     // Get parent conversation
     const parentNode = await prisma.conversationNode.findUnique({
@@ -127,7 +162,7 @@ router.post('/conversation/:id/branch', async (req, res) => {
     });
 
     if (!parentNode) {
-      return res.status(404).json({ error: 'Parent conversation not found' });
+      return res.status(404).json({ error: "Parent conversation not found" });
     }
 
     // Generate summary of parent conversation
@@ -137,7 +172,7 @@ router.post('/conversation/:id/branch', async (req, res) => {
     }
 
     // Create system prompt with context
-    let contextPrompt = '';
+    let contextPrompt = "";
     if (summary) {
       contextPrompt += `Previous conversation summary: ${summary}\n\n`;
     }
@@ -145,23 +180,44 @@ router.post('/conversation/:id/branch', async (req, res) => {
     // Include last 5 message pairs from parent
     const recentMessages = parentNode.messages.slice(-10);
     if (recentMessages.length > 0) {
-      contextPrompt += 'Recent context:\n';
-      recentMessages.forEach(msg => {
+      contextPrompt += "Recent context:\n";
+      recentMessages.forEach((msg) => {
         contextPrompt += `${msg.role}: ${msg.content}\n`;
       });
-      contextPrompt += '\n';
+      contextPrompt += "\n";
     }
 
     if (selectedText) {
       contextPrompt += `The user wants to focus on: "${selectedText}"\n`;
     }
 
+    // Generate a smart title for the branch
+    let branchTitle = "New Branch";
+    if (selectedText) {
+      // Use AI to generate a concise title based on selected text
+      try {
+        const titlePrompt = `Generate a short, concise title (3-6 words) for a conversation branch that focuses on: "${selectedText}"\n\nRespond with ONLY the title, nothing else.`;
+        const titleMessages = [
+          {
+            id: "temp",
+            role: "user" as const,
+            content: titlePrompt,
+            timestamp: new Date(),
+          },
+        ];
+        branchTitle = await generateTitle(titleMessages, apiKey);
+      } catch (error) {
+        // Fallback to truncated text if AI title generation fails
+        branchTitle = `Branch: ${selectedText.substring(0, 30)}${
+          selectedText.length > 30 ? "..." : ""
+        }`;
+      }
+    }
+
     // Create new branch node
     const newNode = await prisma.conversationNode.create({
       data: {
-        title: selectedText
-          ? `Branch: ${selectedText.substring(0, 30)}...`
-          : 'New Branch',
+        title: branchTitle,
         parentId: id,
         branchSourceMessageId: sourceMessageId || null,
         branchSelectedText: selectedText || null,
@@ -175,13 +231,13 @@ router.post('/conversation/:id/branch', async (req, res) => {
 
     res.json(newNode);
   } catch (error) {
-    console.error('Error creating branch:', error);
-    res.status(500).json({ error: 'Failed to create branch' });
+    console.error("Error creating branch:", error);
+    res.status(500).json({ error: "Failed to create branch" });
   }
 });
 
 // Get full conversation tree
-router.get('/tree/:id', async (req, res) => {
+router.get("/tree/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -197,7 +253,7 @@ router.get('/tree/:id', async (req, res) => {
     });
 
     if (!tree) {
-      return res.status(404).json({ error: 'Tree not found' });
+      return res.status(404).json({ error: "Tree not found" });
     }
 
     // Format response
@@ -215,13 +271,13 @@ router.get('/tree/:id', async (req, res) => {
 
     res.json(formattedTree);
   } catch (error) {
-    console.error('Error fetching tree:', error);
-    res.status(500).json({ error: 'Failed to fetch tree' });
+    console.error("Error fetching tree:", error);
+    res.status(500).json({ error: "Failed to fetch tree" });
   }
 });
 
 // Update conversation (e.g., title)
-router.put('/conversation/:id', async (req, res) => {
+router.put("/conversation/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -234,13 +290,13 @@ router.put('/conversation/:id', async (req, res) => {
 
     res.json(updatedNode);
   } catch (error) {
-    console.error('Error updating conversation:', error);
-    res.status(500).json({ error: 'Failed to update conversation' });
+    console.error("Error updating conversation:", error);
+    res.status(500).json({ error: "Failed to update conversation" });
   }
 });
 
 // Delete conversation and children
-router.delete('/conversation/:id', async (req, res) => {
+router.delete("/conversation/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -251,16 +307,16 @@ router.delete('/conversation/:id', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error deleting conversation:', error);
-    res.status(500).json({ error: 'Failed to delete conversation' });
+    console.error("Error deleting conversation:", error);
+    res.status(500).json({ error: "Failed to delete conversation" });
   }
 });
 
 // Generate summary for a conversation
-router.post('/conversation/:id/summarize', async (req, res) => {
+router.post("/conversation/:id/summarize", async (req, res) => {
   try {
     const { id } = req.params;
-    const apiKey = req.headers['x-api-key'] as string | undefined;
+    const apiKey = req.headers["x-api-key"] as string | undefined;
 
     const node = await prisma.conversationNode.findUnique({
       where: { id },
@@ -268,7 +324,7 @@ router.post('/conversation/:id/summarize', async (req, res) => {
     });
 
     if (!node) {
-      return res.status(404).json({ error: 'Conversation not found' });
+      return res.status(404).json({ error: "Conversation not found" });
     }
 
     const summary = await generateSummary(node.messages, apiKey);
@@ -280,8 +336,8 @@ router.post('/conversation/:id/summarize', async (req, res) => {
 
     res.json({ summary });
   } catch (error) {
-    console.error('Error generating summary:', error);
-    res.status(500).json({ error: 'Failed to generate summary' });
+    console.error("Error generating summary:", error);
+    res.status(500).json({ error: "Failed to generate summary" });
   }
 });
 
