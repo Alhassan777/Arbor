@@ -211,10 +211,10 @@ export function ExcalidrawCanvas({
           elements: elements,
           appState: {
             theme: 'dark',
-            viewBackgroundColor: '#0a0a0f',
-            gridSize: null,
-            currentItemStrokeColor: '#6366f1',
-            currentItemBackgroundColor: 'rgba(99, 102, 241, 0.1)',
+            viewBackgroundColor: '#0c0f0e',
+            currentItemStrokeColor: '#9caba3', // birch
+            currentItemBackgroundColor: '#131917', // forest-floor
+            currentItemFontFamily: 1,
           },
         }}
         onChange={handleChange}
@@ -222,15 +222,16 @@ export function ExcalidrawCanvas({
         onPointerDown={handlePointerDown}
         UIOptions={{
           canvasActions: {
-            clearCanvas: false,
+            clearCanvas: true, // Allow clearing canvas
             export: { saveFileToDisk: true },
             loadScene: false,
             saveToActiveFile: false,
-            toggleTheme: false,
+            toggleTheme: false, // Force dark mode
+            changeViewBackgroundColor: false, // Keep our bg color
           },
-          tools: {
-            image: false, // Disable image upload
-          },
+          // Enable all tools - don't restrict them
+          // The previous config with tools: { image: false } was too restrictive
+          // and may have disabled other tools as well
         }}
         theme="dark"
       />
