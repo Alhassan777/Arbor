@@ -6,7 +6,7 @@ import AppLayout from './components/layout/AppLayout';
 import ConversationTree from './components/sidebar/ConversationTree';
 import ChatContainer from './components/chat/ChatContainer';
 import GraphView from './components/graph/GraphView';
-import { ExcalidrawCanvas } from './components/graph/ExcalidrawCanvas';
+// import { ExcalidrawCanvas } from './components/graph/ExcalidrawCanvas';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
 import { TooltipProvider } from './components/ui/Tooltip';
@@ -113,13 +113,14 @@ function App() {
         isAnnotateMode={isAnnotateMode}
         onToggleAnnotateMode={handleToggleAnnotateMode}
         excalidrawOverlay={
-          tree && isAnnotateMode ? (
-            <ExcalidrawCanvas
-              tree={tree}
-              currentNodeId={currentNodeId}
-              onNodeSelect={setCurrentNode}
-            />
-          ) : null
+          // tree && isAnnotateMode ? (
+          //   <ExcalidrawCanvas
+          //     tree={tree}
+          //     currentNodeId={currentNodeId}
+          //     onNodeSelect={setCurrentNode}
+          //   />
+          // ) : null
+          null
         }
       />
 

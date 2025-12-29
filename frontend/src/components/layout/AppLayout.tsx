@@ -156,11 +156,11 @@ export default function AppLayout({
             <div className="w-full h-full relative">
               {rightSidebar}
               {/* Excalidraw overlay - positioned absolutely on top of GraphView */}
-              {excalidrawOverlay && (
+              {/* {excalidrawOverlay && (
                 <div className="absolute inset-0 z-20 pointer-events-auto">
                   {excalidrawOverlay}
                 </div>
-              )}
+              )} */}
             </div>
           </motion.div>
         )}

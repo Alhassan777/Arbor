@@ -1,6 +1,6 @@
 import { useConversationStore } from '../store/conversationStore';
 import { Icons } from './ui/Icons';
-import { ExcalidrawCanvas } from './graph/ExcalidrawCanvas';
+// import { ExcalidrawCanvas } from './graph/ExcalidrawCanvas';
 
 interface GraphSidebarProps {
   isCollapsed: boolean;
@@ -58,13 +58,13 @@ export default function GraphSidebar({ isCollapsed, onToggle, onOpenSettings }: 
 
         {/* Graph */}
         <div className="flex-1">
-          {tree && (
+          {/* {tree && (
             <ExcalidrawCanvas
               tree={tree}
               currentNodeId={currentNodeId}
               onNodeSelect={setCurrentNode}
             />
-          )}
+          )} */}
         </div>
       </div>
     </>
