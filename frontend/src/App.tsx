@@ -16,6 +16,7 @@ function App() {
   const { apiKey } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isChatPanelOpen, setIsChatPanelOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
   useEffect(() => {
@@ -52,16 +53,38 @@ function App() {
         initializeNewTree();
       }
 
-      // Cmd/Ctrl + [ to toggle left sidebar
+      // Cmd/Ctrl + [ to toggle left sidebar (tree)
       if ((e.metaKey || e.ctrlKey) && e.key === '[') {
         e.preventDefault();
         setIsLeftSidebarOpen((prev) => !prev);
       }
 
-      // Cmd/Ctrl + ] to toggle right sidebar
+      // Cmd/Ctrl + ] to toggle right sidebar (graph)
       if ((e.metaKey || e.ctrlKey) && e.key === ']') {
         e.preventDefault();
         setIsRightSidebarOpen((prev) => !prev);
+      }
+
+      // Cmd/Ctrl + \ to toggle chat panel (center)
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        setIsChatPanelOpen((prev) => !prev);
+      }
+
+      // Cmd/Ctrl + Shift + G for full graph mode (collapse tree + chat)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'G') {
+        e.preventDefault();
+        setIsLeftSidebarOpen(false);
+        setIsChatPanelOpen(false);
+        setIsRightSidebarOpen(true);
+      }
+
+      // Escape to reset to default layout
+      if (e.key === 'Escape' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsLeftSidebarOpen(true);
+        setIsChatPanelOpen(true);
+        setIsRightSidebarOpen(true);
       }
     };
 
@@ -69,18 +92,26 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [initializeNewTree]);
 
+  const handleFullGraphMode = () => {
+    setIsLeftSidebarOpen(false);
+    setIsChatPanelOpen(false);
+    setIsRightSidebarOpen(true);
+  };
+
   return (
     <TooltipProvider>
       <AppLayout
         leftSidebar={<ConversationTree onToggle={() => setIsLeftSidebarOpen(false)} />}
         leftSidebarOpen={isLeftSidebarOpen}
         onToggleLeftSidebar={() => setIsLeftSidebarOpen((prev) => !prev)}
+        chatPanel={<ChatContainer />}
+        chatPanelOpen={isChatPanelOpen}
+        onToggleChatPanel={() => setIsChatPanelOpen((prev) => !prev)}
         rightSidebar={<GraphView onToggle={() => setIsRightSidebarOpen(false)} />}
         rightSidebarOpen={isRightSidebarOpen}
         onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
-      >
-        <ChatContainer />
-      </AppLayout>
+        onFullGraphMode={handleFullGraphMode}
+      />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
