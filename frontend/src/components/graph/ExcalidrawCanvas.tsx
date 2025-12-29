@@ -215,6 +215,8 @@ export function ExcalidrawCanvas({
             currentItemStrokeColor: '#9caba3', // birch
             currentItemBackgroundColor: '#131917', // forest-floor
             currentItemFontFamily: 1,
+            zenModeEnabled: false, // Ensure zen mode is disabled
+            viewModeEnabled: false, // Ensure view mode is disabled - this allows editing
           },
         }}
         onChange={handleChange}
@@ -222,16 +224,14 @@ export function ExcalidrawCanvas({
         onPointerDown={handlePointerDown}
         UIOptions={{
           canvasActions: {
-            clearCanvas: true, // Allow clearing canvas
+            clearCanvas: true,
             export: { saveFileToDisk: true },
             loadScene: false,
             saveToActiveFile: false,
-            toggleTheme: false, // Force dark mode
-            changeViewBackgroundColor: false, // Keep our bg color
+            toggleTheme: false,
+            changeViewBackgroundColor: false,
           },
-          // Enable all tools - don't restrict them
-          // The previous config with tools: { image: false } was too restrictive
-          // and may have disabled other tools as well
+          // Don't restrict any tools - let all default tools be available
         }}
         theme="dark"
       />

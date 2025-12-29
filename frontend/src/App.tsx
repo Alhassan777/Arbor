@@ -92,10 +92,21 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [initializeNewTree]);
 
-  const handleFullGraphMode = () => {
-    setIsLeftSidebarOpen(false);
-    setIsChatPanelOpen(false);
-    setIsRightSidebarOpen(true);
+  // Check if we're in full graph mode (only graph visible)
+  const isFullGraphMode = !isLeftSidebarOpen && !isChatPanelOpen && isRightSidebarOpen;
+
+  const handleToggleFullGraphMode = () => {
+    if (isFullGraphMode) {
+      // Restore to default layout
+      setIsLeftSidebarOpen(true);
+      setIsChatPanelOpen(true);
+      setIsRightSidebarOpen(true);
+    } else {
+      // Enter full graph mode
+      setIsLeftSidebarOpen(false);
+      setIsChatPanelOpen(false);
+      setIsRightSidebarOpen(true);
+    }
   };
 
   return (
@@ -110,7 +121,8 @@ function App() {
         rightSidebar={<GraphView onToggle={() => setIsRightSidebarOpen(false)} />}
         rightSidebarOpen={isRightSidebarOpen}
         onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
-        onFullGraphMode={handleFullGraphMode}
+        isFullGraphMode={isFullGraphMode}
+        onToggleFullGraphMode={handleToggleFullGraphMode}
       />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
