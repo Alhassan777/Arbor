@@ -5,6 +5,7 @@ import { useSettingsStore } from './store/settingsStore';
 import AppLayout from './components/layout/AppLayout';
 import ConversationTree from './components/sidebar/ConversationTree';
 import ChatContainer from './components/chat/ChatContainer';
+import GraphView from './components/graph/GraphView';
 import { ExcalidrawCanvas } from './components/graph/ExcalidrawCanvas';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
@@ -18,6 +19,7 @@ function App() {
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isAnnotateMode, setIsAnnotateMode] = useState(false);
 
   useEffect(() => {
     // Initialize a new conversation tree on mount if none exists
@@ -92,6 +94,10 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [initializeNewTree]);
 
+  const handleToggleAnnotateMode = () => {
+    setIsAnnotateMode((prev) => !prev);
+  };
+
   return (
     <TooltipProvider>
       <AppLayout
@@ -101,8 +107,13 @@ function App() {
         chatPanel={<ChatContainer />}
         chatPanelOpen={isChatPanelOpen}
         onToggleChatPanel={() => setIsChatPanelOpen((prev) => !prev)}
-        rightSidebar={
-          tree ? (
+        rightSidebar={<GraphView onToggle={() => setIsRightSidebarOpen(false)} />}
+        rightSidebarOpen={isRightSidebarOpen}
+        onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
+        isAnnotateMode={isAnnotateMode}
+        onToggleAnnotateMode={handleToggleAnnotateMode}
+        excalidrawOverlay={
+          tree && isAnnotateMode ? (
             <ExcalidrawCanvas
               tree={tree}
               currentNodeId={currentNodeId}
@@ -110,8 +121,6 @@ function App() {
             />
           ) : null
         }
-        rightSidebarOpen={isRightSidebarOpen}
-        onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
       />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
