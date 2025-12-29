@@ -59,9 +59,9 @@
   color: #2dd4a7;
 }
 
-/* Canvas background - transparent to see graph underneath */
+/* Canvas background */
 .excalidraw .excalidraw-canvas-wrapper {
-  background: transparent;
+  background: #0c0f0e;
 }
 
 /* Scrollbars */
