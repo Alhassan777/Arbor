@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react';
 import { useConversationStore } from './store/conversationStore';
 import { useToastStore } from './store/toastStore';
 import { useSettingsStore } from './store/settingsStore';
-import GraphSidebar from './components/GraphSidebar';
-import ChatHistorySidebar from './components/ChatHistorySidebar';
-import ChatArea from './components/ChatArea';
+import AppLayout from './components/layout/AppLayout';
+import ConversationTree from './components/sidebar/ConversationTree';
+import ChatContainer from './components/chat/ChatContainer';
+import GraphView from './components/graph/GraphView';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
+import { TooltipProvider } from './components/ui/Tooltip';
 
 function App() {
   const { initializeNewTree, tree } = useConversationStore();
   const { toasts, removeToast } = useToastStore();
-  const { apiKey, theme } = useSettingsStore();
+  const { apiKey } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
-  const [isChatHistoryCollapsed, setIsChatHistoryCollapsed] = useState(false);
-  const [isGraphCollapsed, setIsGraphCollapsed] = useState(false);
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
 
   useEffect(() => {
     // Initialize a new conversation tree on mount if none exists
@@ -24,13 +26,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    // Apply theme
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
+    // Apply dark mode (always on for new design)
+    document.documentElement.classList.add('dark');
+  }, []);
 
   useEffect(() => {
     // Show settings if no API key
@@ -47,24 +45,42 @@ function App() {
         e.preventDefault();
         setShowSettings((prev) => !prev);
       }
+
+      // Cmd/Ctrl + N for new conversation
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        initializeNewTree();
+      }
+
+      // Cmd/Ctrl + [ to toggle left sidebar
+      if ((e.metaKey || e.ctrlKey) && e.key === '[') {
+        e.preventDefault();
+        setIsLeftSidebarOpen((prev) => !prev);
+      }
+
+      // Cmd/Ctrl + ] to toggle right sidebar
+      if ((e.metaKey || e.ctrlKey) && e.key === ']') {
+        e.preventDefault();
+        setIsRightSidebarOpen((prev) => !prev);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [initializeNewTree]);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-      <ChatHistorySidebar
-        isCollapsed={isChatHistoryCollapsed}
-        onToggle={() => setIsChatHistoryCollapsed(!isChatHistoryCollapsed)}
-      />
-      <ChatArea />
-      <GraphSidebar
-        isCollapsed={isGraphCollapsed}
-        onToggle={() => setIsGraphCollapsed(!isGraphCollapsed)}
-        onOpenSettings={() => setShowSettings(true)}
-      />
+    <TooltipProvider>
+      <AppLayout
+        leftSidebar={<ConversationTree onToggle={() => setIsLeftSidebarOpen(false)} />}
+        leftSidebarOpen={isLeftSidebarOpen}
+        onToggleLeftSidebar={() => setIsLeftSidebarOpen((prev) => !prev)}
+        rightSidebar={<GraphView onToggle={() => setIsRightSidebarOpen(false)} />}
+        rightSidebarOpen={isRightSidebarOpen}
+        onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
+      >
+        <ChatContainer />
+      </AppLayout>
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
@@ -76,7 +92,7 @@ function App() {
           onClose={() => removeToast(toast.id)}
         />
       ))}
-    </div>
+    </TooltipProvider>
   );
 }
 

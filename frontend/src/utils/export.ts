@@ -35,7 +35,7 @@ function generateMarkdownFromTree(tree: ConversationTree, currentNodeId: string)
   let nodeId: string | null = currentNodeId;
 
   while (nodeId) {
-    const node = tree.nodes[nodeId];
+    const node: ConversationNode | undefined = tree.nodes[nodeId];
     if (!node) break;
     path.unshift(node);
     nodeId = node.parentId;
@@ -44,7 +44,10 @@ function generateMarkdownFromTree(tree: ConversationTree, currentNodeId: string)
   // Generate markdown
   let markdown = `# ${currentNode.title}\n\n`;
   markdown += `**Conversation ID:** ${tree.id}\n`;
-  markdown += `**Created:** ${new Date(tree.createdAt).toLocaleString()}\n\n`;
+  const rootNode = tree.nodes[tree.rootNodeId];
+  if (rootNode) {
+    markdown += `**Created:** ${new Date(rootNode.createdAt).toLocaleString()}\n\n`;
+  }
   markdown += `---\n\n`;
 
   // Add conversation path if there are branches

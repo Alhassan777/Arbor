@@ -15,7 +15,6 @@ interface MessageBubbleProps {
 }
 
 export default function MessageBubble({ message, onInsertText }: MessageBubbleProps) {
-  const [isHovered, setIsHovered] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
@@ -90,9 +89,6 @@ export default function MessageBubble({ message, onInsertText }: MessageBubblePr
   return (
     <div
       className={cn('flex group', isUser ? 'justify-end' : 'justify-start')}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onTouchStart={() => setIsHovered(true)}
     >
       <div className="relative max-w-[85%] md:max-w-[70%]">
         {/* Message Content */}
