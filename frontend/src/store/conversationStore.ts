@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ConversationTree } from '../types';
+import type { ConversationTree, ConversationNode, Message } from '../types';
 import { api } from '../api/client';
 import { useSettingsStore } from './settingsStore';
 import { generateConnectionLabel } from '../lib/ai/connectionLabeler';
@@ -92,28 +92,68 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     const { currentNodeId, tree } = get();
     if (!currentNodeId || !tree) return;
 
-    set({ isLoading: true, error: null });
+    // Create optimistic user message
+    const optimisticUserMessage: Message = {
+      id: `temp-${Date.now()}-${Math.random()}`,
+      role: 'user',
+      content: content,
+      timestamp: new Date(),
+    };
+
+    // Immediately add the user message to the UI (optimistic update)
+    const updatedNodes = { ...tree.nodes };
+    const currentNode = updatedNodes[currentNodeId];
+    if (currentNode) {
+      updatedNodes[currentNodeId] = {
+        ...currentNode,
+        messages: [...currentNode.messages, optimisticUserMessage],
+      };
+    }
+
+    set({
+      tree: { ...tree, nodes: updatedNodes },
+      isLoading: true,
+      error: null
+    });
+
     try {
       const { apiKey, model } = useSettingsStore.getState();
       const { userMessage, assistantMessage, updatedTitle } = await api.sendMessage(currentNodeId, content, apiKey, model);
 
-      // Update the tree with both messages and updated title
-      const updatedNodes = { ...tree.nodes };
-      const currentNode = updatedNodes[currentNodeId];
-      if (currentNode) {
-        updatedNodes[currentNodeId] = {
-          ...currentNode,
-          messages: [...currentNode.messages, userMessage, assistantMessage],
+      // Replace optimistic message with real messages from backend
+      const finalNodes = { ...tree.nodes };
+      const finalNode = finalNodes[currentNodeId];
+      if (finalNode) {
+        // Remove the optimistic message and add the real ones
+        const messagesWithoutOptimistic = finalNode.messages.filter(
+          msg => msg.id !== optimisticUserMessage.id
+        );
+        finalNodes[currentNodeId] = {
+          ...finalNode,
+          messages: [...messagesWithoutOptimistic, userMessage, assistantMessage],
           title: updatedTitle,
         };
       }
 
       set({
-        tree: { ...tree, nodes: updatedNodes },
+        tree: { ...tree, nodes: finalNodes },
         isLoading: false
       });
     } catch (error) {
+      // On error, remove the optimistic message
+      const errorNodes = { ...tree.nodes };
+      const errorNode = errorNodes[currentNodeId];
+      if (errorNode) {
+        errorNodes[currentNodeId] = {
+          ...errorNode,
+          messages: errorNode.messages.filter(
+            msg => msg.id !== optimisticUserMessage.id
+          ),
+        };
+      }
+
       set({
+        tree: { ...tree, nodes: errorNodes },
         error: error instanceof Error ? error.message : 'Unknown error',
         isLoading: false
       });
