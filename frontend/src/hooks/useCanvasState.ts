@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { CanvasState } from '../types';
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/types/element/types';
+import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 
 export function useCanvasState(treeId: string | null) {
   const [canvasState, setCanvasState] = useState<CanvasState | null>(null);

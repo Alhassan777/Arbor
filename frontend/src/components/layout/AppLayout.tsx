@@ -11,8 +11,9 @@ interface AppLayoutProps {
   rightSidebar: React.ReactNode;
   rightSidebarOpen: boolean;
   onToggleRightSidebar: () => void;
-  isFullGraphMode?: boolean;
-  onToggleFullGraphMode?: () => void;
+  isAnnotateMode?: boolean;
+  onToggleAnnotateMode?: () => void;
+  excalidrawOverlay?: React.ReactNode;
 }
 
 export default function AppLayout({
@@ -25,8 +26,9 @@ export default function AppLayout({
   rightSidebar,
   rightSidebarOpen,
   onToggleRightSidebar,
-  isFullGraphMode,
-  onToggleFullGraphMode,
+  isAnnotateMode,
+  onToggleAnnotateMode,
+  excalidrawOverlay,
 }: AppLayoutProps) {
   return (
     <div className="flex h-screen bg-midnight-soil overflow-hidden relative">
@@ -117,18 +119,18 @@ export default function AppLayout({
                 </button>
               )}
 
-              {/* Full graph mode toggle button */}
-              {onToggleFullGraphMode && (
+              {/* Annotate mode toggle button */}
+              {onToggleAnnotateMode && (
                 <button
-                  onClick={onToggleFullGraphMode}
+                  onClick={onToggleAnnotateMode}
                   className="p-1.5 rounded-organic bg-forest-floor/80 backdrop-blur border border-branch text-lichen hover:bg-canopy hover:text-midnight-soil transition-all flex items-center gap-1.5"
-                  title={isFullGraphMode ? "Restore layout (⌘⇧G)" : "Full graph mode (⌘⇧G)"}
-                  aria-label={isFullGraphMode ? "Restore layout" : "Full graph mode"}
+                  title={isAnnotateMode ? "Exit annotate mode" : "Enter annotate mode"}
+                  aria-label={isAnnotateMode ? "Exit annotate mode" : "Enter annotate mode"}
                 >
-                  {isFullGraphMode ? (
+                  {isAnnotateMode ? (
                     <>
                       <Minimize2 className="h-4 w-4" />
-                      <span className="text-xs font-medium">Restore</span>
+                      <span className="text-xs font-medium">Exit</span>
                     </>
                   ) : (
                     <>
@@ -151,7 +153,15 @@ export default function AppLayout({
               </button>
             </div>
 
-            <div className="w-full h-full">{rightSidebar}</div>
+            <div className="w-full h-full relative">
+              {rightSidebar}
+              {/* Excalidraw overlay - positioned absolutely on top of GraphView */}
+              {excalidrawOverlay && (
+                <div className="absolute inset-0 z-20 pointer-events-auto">
+                  {excalidrawOverlay}
+                </div>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
