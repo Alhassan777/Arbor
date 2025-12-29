@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ConversationTree, ConversationNode, Message } from '../types';
+import type { ConversationTree } from '../types';
 import { api } from '../api/client';
 import { useSettingsStore } from './settingsStore';
 

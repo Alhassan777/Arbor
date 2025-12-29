@@ -2,8 +2,7 @@ import type {
   ConversationTree,
   ConversationNode,
   Message,
-  CreateBranchRequest,
-  SendMessageRequest
+  CreateBranchRequest
 } from '../types';
 
 const API_BASE = '/api';
