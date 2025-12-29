@@ -43,7 +43,7 @@ export default function ChatHeader({
   };
 
   return (
-    <div className="bg-surface border-b border-border px-6 py-4">
+    <div className="bg-forest-floor border-b border-branch px-6 py-4">
       <div className="flex items-center justify-between mb-2">
         {isEditing ? (
           <Input
@@ -57,12 +57,12 @@ export default function ChatHeader({
           />
         ) : (
           <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsEditing(true)}>
-            <h1 className="text-xl font-semibold text-text-primary">
+            <h1 className="text-xl font-semibold text-parchment">
               {title}
             </h1>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Pencil className="h-4 w-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Pencil className="h-4 w-4 text-lichen opacity-0 group-hover:opacity-100 transition-opacity" />
               </TooltipTrigger>
               <TooltipContent>Edit title</TooltipContent>
             </Tooltip>
@@ -72,24 +72,24 @@ export default function ChatHeader({
         {!isEditing && (
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button className="p-2 hover:bg-surface-hover rounded-lg transition-colors">
-                <MoreVertical className="h-5 w-5 text-text-secondary" />
+              <button className="p-2 hover:bg-undergrowth rounded-organic-lg transition-colors">
+                <MoreVertical className="h-5 w-5 text-birch" />
               </button>
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content
-                className="min-w-[180px] bg-surface border border-border rounded-lg shadow-lg p-1 z-50"
+                className="min-w-[180px] bg-forest-floor border border-branch rounded-organic-lg shadow-dappled p-1 z-50"
                 sideOffset={5}
               >
                 <DropdownMenu.Item
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover rounded cursor-pointer outline-none"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-parchment hover:bg-undergrowth rounded-organic cursor-pointer outline-none"
                   onSelect={onExportJSON}
                 >
                   <Download className="h-4 w-4" />
                   Export as JSON
                 </DropdownMenu.Item>
                 <DropdownMenu.Item
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-text-primary hover:bg-surface-hover rounded cursor-pointer outline-none"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-parchment hover:bg-undergrowth rounded-organic cursor-pointer outline-none"
                   onSelect={onExportMarkdown}
                 >
                   <Download className="h-4 w-4" />
@@ -97,9 +97,9 @@ export default function ChatHeader({
                 </DropdownMenu.Item>
                 {canDelete && (
                   <>
-                    <DropdownMenu.Separator className="h-px bg-border my-1" />
+                    <DropdownMenu.Separator className="h-px bg-branch my-1" />
                     <DropdownMenu.Item
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-surface-hover rounded cursor-pointer outline-none"
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-berry hover:bg-berry/10 rounded-organic cursor-pointer outline-none"
                       onSelect={onDelete}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -115,11 +115,11 @@ export default function ChatHeader({
 
       {/* Breadcrumb */}
       {breadcrumb.length > 0 && (
-        <div className="flex items-center gap-2 text-sm text-text-secondary">
+        <div className="flex items-center gap-2 text-sm text-birch">
           {breadcrumb.map((crumb, index) => (
             <span key={index}>
               {index > 0 && <span className="mx-1">&gt;</span>}
-              <span className="hover:text-primary cursor-pointer transition-colors">
+              <span className="hover:text-canopy cursor-pointer transition-colors">
                 {crumb}
               </span>
             </span>

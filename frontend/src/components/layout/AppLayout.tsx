@@ -21,7 +21,7 @@ export default function AppLayout({
   children,
 }: AppLayoutProps) {
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-midnight-soil overflow-hidden">
       {/* Left Sidebar */}
       <AnimatePresence initial={false}>
         {leftSidebarOpen && (
@@ -30,7 +30,7 @@ export default function AppLayout({
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="bg-surface border-r border-border overflow-hidden"
+            className="bg-forest-floor border-r border-branch overflow-hidden"
           >
             <div className="w-[280px] h-full">{leftSidebar}</div>
           </motion.div>
@@ -39,13 +39,13 @@ export default function AppLayout({
 
       {/* Toggle Button for Left Sidebar (when collapsed) */}
       {!leftSidebarOpen && (
-        <div className="w-12 bg-surface border-r border-border flex items-start justify-center pt-4">
+        <div className="w-12 bg-forest-floor border-r border-branch flex items-start justify-center pt-4">
           <button
             onClick={onToggleLeftSidebar}
-            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+            className="p-2 hover:bg-undergrowth rounded-organic-lg transition-colors"
             title="Expand conversation tree"
           >
-            <ChevronRight className="h-5 w-5 text-text-secondary" />
+            <ChevronRight className="h-5 w-5 text-birch" />
           </button>
         </div>
       )}
@@ -55,13 +55,13 @@ export default function AppLayout({
 
       {/* Toggle Button for Right Sidebar (when collapsed) */}
       {!rightSidebarOpen && (
-        <div className="w-12 bg-surface border-l border-border flex items-start justify-center pt-4">
+        <div className="w-12 bg-forest-floor border-l border-branch flex items-start justify-center pt-4">
           <button
             onClick={onToggleRightSidebar}
-            className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+            className="p-2 hover:bg-undergrowth rounded-organic-lg transition-colors"
             title="Expand graph view"
           >
-            <ChevronLeft className="h-5 w-5 text-text-secondary" />
+            <ChevronLeft className="h-5 w-5 text-birch" />
           </button>
         </div>
       )}
@@ -74,7 +74,7 @@ export default function AppLayout({
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="bg-surface border-l border-border overflow-hidden"
+            className="bg-forest-floor border-l border-branch overflow-hidden"
           >
             <div className="w-[320px] h-full">{rightSidebar}</div>
           </motion.div>
