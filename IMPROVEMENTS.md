@@ -97,44 +97,80 @@ This document outlines all the improvements made to BranchChat for better UI/UX 
 **Files Changed:**
 - `frontend/src/components/MessageBubble.tsx` - Added copy functionality
 
-## 🚧 Planned Improvements
+### 9. **Message Timestamps** ⏰ *(NEW!)*
+- **Relative Time**: Display relative time (e.g., "2 minutes ago", "5 hours ago")
+- **Full Timestamp**: Full timestamp shown on hover
+- **Formatted Dates**: Smart formatting for older messages (switches to date after 7 days)
+- **Real-time Updates**: Timestamps update based on current time
+- **Styled for Themes**: Different styling for user vs assistant messages
 
-### High Priority
+**Files Changed:**
+- `frontend/src/utils/time.ts` - New time formatting utilities
+- `frontend/src/components/MessageBubble.tsx` - Added timestamp display
+
+### 10. **Delete Conversation** 🗑️ *(NEW!)*
+- **Delete Button**: Trash icon button in conversation header
+- **Confirmation Modal**: Reusable ConfirmDialog component with danger/warning/info variants
+- **Root Protection**: Cannot delete root conversation (shows error toast)
+- **Cascade Delete**: Deletes all child conversation nodes
+- **User Feedback**: Success toast on deletion
+- **Conditional Display**: Only shows for non-root conversations
+
+**Files Changed:**
+- `frontend/src/components/ConfirmDialog.tsx` - New reusable confirmation dialog
+- `frontend/src/components/ChatArea.tsx` - Added delete functionality
+
+### 11. **Export Conversations** 💾 *(NEW!)*
+- **Export as JSON**: Download full conversation tree as structured JSON
+- **Export as Markdown**: Download as readable Markdown format
+- **Dropdown Menu**: Clean export menu with both options
+- **Smart Export**: Markdown includes conversation path, metadata, and messages
+- **Auto Download**: Files automatically download to user's device
+- **User Feedback**: Toast notification confirms export
+- **Dark Mode Support**: Export menu styled for both themes
+
+**Files Changed:**
+- `frontend/src/utils/export.ts` - New export utilities
+- `frontend/src/components/ChatArea.tsx` - Added export dropdown menu
+
+### 12. **Keyboard Shortcuts** ⌨️ *(NEW!)*
+- **Cmd/Ctrl+Enter**: Send message from input field
+- **Cmd/Ctrl+K**: Toggle settings modal (global shortcut)
+- **Esc**: Close modals and cancel editing (already implemented)
+- **Cross-platform**: Works on both Mac (Cmd) and Windows/Linux (Ctrl)
+- **Prevents Defaults**: Properly prevents browser defaults
+
+**Files Changed:**
+- `frontend/src/App.tsx` - Global Cmd+K shortcut
+- `frontend/src/components/ChatArea.tsx` - Cmd+Enter for sending messages
+
+### 13. **Mobile Responsive Design** 📱 *(NEW!)*
+- **Auto-collapse Sidebar**: Automatically collapses on screens < 768px
+- **Floating Menu Button**: Hamburger menu button on mobile
+- **Fullscreen Sidebar**: Sidebar overlays fullscreen on mobile with backdrop
+- **Touch-optimized**: All buttons have `touch-manipulation` for better touch response
+- **Responsive Spacing**: Adaptive padding and margins for mobile (px-3 vs px-6)
+- **Flexible Message Width**: Messages use 85% width on mobile vs 70% on desktop
+- **Responsive Typography**: Font sizes adjust for mobile (text-lg vs text-xl)
+- **Touch Events**: Messages show action buttons on touch for mobile
+- **Smaller Buttons**: Compact button spacing on mobile
+- **Optimized Input**: Better input field sizing for mobile keyboards
+
+**Files Changed:**
+- `frontend/src/components/GraphSidebar.tsx` - Mobile sidebar with overlay
+- `frontend/src/components/ChatArea.tsx` - Mobile responsive styles
+- `frontend/src/components/MessageBubble.tsx` - Mobile message bubbles with touch events
+
+## 🚧 Planned Improvements
 
 ### Medium Priority
 
-5. **Message Timestamps** ⏰
-   - Display relative time (e.g., "2 minutes ago")
-   - Full timestamp on hover
-   - Formatted dates for older messages
-
-6. **Delete Conversation** 🗑️
-   - Delete button for each conversation node
-   - Confirmation modal before deletion
-   - Cascade delete children nodes
-
-7. **Export Conversations** 💾
-   - Export as JSON (structured data)
-   - Export as Markdown (readable format)
-   - Download or copy to clipboard
-
-8. **Retry Failed Messages** 🔄
+1. **Retry Failed Messages** 🔄
    - Retry button for failed API calls
    - Automatic retry with exponential backoff
    - Clear error indicators
 
 ### Low Priority
-
-9. **Keyboard Shortcuts** ⌨️
-   - `Ctrl/Cmd + Enter` to send message
-   - `Ctrl/Cmd + K` to open settings
-   - `Esc` to close modals
-   - Navigation shortcuts
-
-10. **Mobile Responsive Design** 📱
-    - Collapsible sidebar by default on mobile
-    - Touch-friendly button sizes
-    - Optimized layout for small screens
 
 11. **Search Conversations** 🔍
     - Search across all messages
@@ -225,4 +261,4 @@ const exportMarkdown = () => {
 ---
 
 **Last Updated**: 2025-12-29
-**Version**: 2.0.0 - Major UX Update (Dark Mode, Markdown, Editable Titles, Copy)
+**Version**: 3.0.0 - Complete UX Overhaul (Timestamps, Delete, Export, Shortcuts, Mobile)
