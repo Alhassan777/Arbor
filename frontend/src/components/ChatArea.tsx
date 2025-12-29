@@ -13,6 +13,7 @@ export default function ChatArea() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const {
     tree,
@@ -84,6 +85,14 @@ export default function ChatArea() {
     } else if (e.key === 'Escape') {
       setIsEditingTitle(false);
     }
+  };
+
+  const handleInsertText = (text: string) => {
+    setInput((prev) => prev + text);
+    // Focus the input field after inserting text
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
   };
 
   const handleDeleteConfirm = async () => {
@@ -253,7 +262,11 @@ export default function ChatArea() {
           </div>
         ) : (
           currentNode.messages.map((message) => (
-            <MessageBubble key={message.id} message={message} />
+            <MessageBubble
+              key={message.id}
+              message={message}
+              onInsertText={handleInsertText}
+            />
           ))
         )}
         {isLoading && (
@@ -274,6 +287,7 @@ export default function ChatArea() {
       <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-3 md:px-6 py-3 md:py-4">
         <form onSubmit={handleSubmit} className="flex space-x-2 md:space-x-4">
           <input
+            ref={inputRef}
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}

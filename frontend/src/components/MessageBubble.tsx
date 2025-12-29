@@ -3,35 +3,71 @@ import { useConversationStore } from '../store/conversationStore';
 import { useToastStore } from '../store/toastStore';
 import MarkdownMessage from './MarkdownMessage';
 import { formatRelativeTime, formatFullDate } from '../utils/time';
+import TextSelectionPopup from './TextSelectionPopup';
 import type { Message } from '../types';
 
 interface MessageBubbleProps {
   message: Message;
+  onInsertText?: (text: string) => void;
 }
 
-export default function MessageBubble({ message }: MessageBubbleProps) {
+export default function MessageBubble({ message, onInsertText }: MessageBubbleProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [selectedText, setSelectedText] = useState('');
-  const [showBranchButton, setShowBranchButton] = useState(false);
+  const [showSelectionPopup, setShowSelectionPopup] = useState(false);
+  const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   const { createBranch } = useConversationStore();
   const { addToast } = useToastStore();
 
   const handleTextSelection = () => {
     const selection = window.getSelection();
-    const text = selection?.toString() || '';
-    setSelectedText(text);
-    setShowBranchButton(text.length > 0);
+    const text = selection?.toString().trim() || '';
+
+    if (text.length > 0) {
+      setSelectedText(text);
+
+      // Get selection position for popup
+      const range = selection?.getRangeAt(0);
+      const rect = range?.getBoundingClientRect();
+
+      if (rect) {
+        setPopupPosition({
+          x: rect.left + rect.width / 2 - 120, // Center popup
+          y: rect.bottom + 10, // Below selection
+        });
+        setShowSelectionPopup(true);
+      }
+    } else {
+      setShowSelectionPopup(false);
+      setSelectedText('');
+    }
   };
 
   const handleBranchFromSelection = async () => {
     if (selectedText) {
       await createBranch(message.id, selectedText);
       window.getSelection()?.removeAllRanges();
-      setShowBranchButton(false);
+      setShowSelectionPopup(false);
       setSelectedText('');
       addToast('Branch created with focused context', 'success');
     }
+  };
+
+  const handleContinueWithSelection = () => {
+    if (selectedText && onInsertText) {
+      onInsertText(`Regarding: "${selectedText}"\n\n`);
+      window.getSelection()?.removeAllRanges();
+      setShowSelectionPopup(false);
+      setSelectedText('');
+      addToast('Context added to input', 'success');
+    }
+  };
+
+  const handleClosePopup = () => {
+    setShowSelectionPopup(false);
+    setSelectedText('');
+    window.getSelection()?.removeAllRanges();
   };
 
   const handleBranch = async () => {
@@ -136,17 +172,15 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           </div>
         )}
 
-        {/* Branch from selection button */}
-        {!isUser && showBranchButton && (
-          <div className="absolute -bottom-12 left-0 right-0 flex justify-center">
-            <button
-              onClick={handleBranchFromSelection}
-              className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
-              title="Create a branch focused on the selected text"
-            >
-              Branch with this context
-            </button>
-          </div>
+        {/* Text Selection Popup */}
+        {!isUser && (
+          <TextSelectionPopup
+            isVisible={showSelectionPopup}
+            position={popupPosition}
+            onBranch={handleBranchFromSelection}
+            onContinue={handleContinueWithSelection}
+            onClose={handleClosePopup}
+          />
         )}
       </div>
     </div>
