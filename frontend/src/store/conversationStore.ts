@@ -2,6 +2,30 @@ import { create } from 'zustand';
 import type { ConversationTree } from '../types';
 import { api } from '../api/client';
 import { useSettingsStore } from './settingsStore';
+import { generateConnectionLabel } from '../lib/ai/connectionLabeler';
+
+// Helper function to generate and save connection label
+async function generateAndSaveConnectionLabel(
+  parentNode: ConversationNode,
+  childNode: ConversationNode,
+  treeId: string,
+  selectedText?: string
+): Promise<void> {
+  try {
+    // Generate label using AI
+    const labelData = await generateConnectionLabel(parentNode, childNode, selectedText);
+    labelData.treeId = treeId;
+
+    // Save to backend
+    await fetch('/api/connection-label', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(labelData),
+    });
+  } catch (error) {
+    console.error('Error generating/saving connection label:', error);
+  }
+}
 
 interface ConversationState {
   tree: ConversationTree | null;
@@ -116,6 +140,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         currentNodeId: newNode.id,
         isLoading: false
       });
+
+      // Generate connection label in the background (non-blocking)
+      if (tree.id) {
+        const parentNode = tree.nodes[currentNodeId];
+        generateAndSaveConnectionLabel(parentNode, newNode, tree.id, selectedText).catch(
+          (err) => console.error('Failed to generate connection label:', err)
+        );
+      }
 
       return newNode.id;
     } catch (error) {

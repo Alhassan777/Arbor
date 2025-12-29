@@ -6,6 +6,7 @@ import {
   generateTitle,
   generateSummary,
 } from "../services/gemini";
+import { generateConnectionLabel } from "../services/claude";
 import type { CreateBranchRequest, SendMessageRequest } from "../types";
 
 const router = Router();
@@ -326,6 +327,110 @@ router.post("/conversation/:id/summarize", async (req, res) => {
   } catch (error) {
     console.error("Error generating summary:", error);
     res.status(500).json({ error: "Failed to generate summary" });
+  }
+});
+
+// Generate connection label using AI
+router.post("/ai/label-connection", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    const apiKey = req.headers["x-api-key"] as string | undefined;
+
+    if (!prompt) {
+      return res.status(400).json({ error: "Prompt is required" });
+    }
+
+    const result = await generateConnectionLabel(prompt, apiKey);
+    res.json(result);
+  } catch (error) {
+    console.error("Error generating connection label:", error);
+    res.status(500).json({ error: "Failed to generate connection label" });
+  }
+});
+
+// Get connection labels for a tree
+router.get("/tree/:id/connection-labels", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const labels = await prisma.connectionLabel.findMany({
+      where: { treeId: id },
+    });
+
+    res.json(labels);
+  } catch (error) {
+    console.error("Error fetching connection labels:", error);
+    res.status(500).json({ error: "Failed to fetch connection labels" });
+  }
+});
+
+// Create or update connection label
+router.post("/connection-label", async (req, res) => {
+  try {
+    const { connectionId, treeId, type, text, aiGenerated, userEdited } = req.body;
+
+    const label = await prisma.connectionLabel.upsert({
+      where: { connectionId },
+      create: {
+        connectionId,
+        treeId,
+        type,
+        text,
+        aiGenerated: aiGenerated ?? true,
+        userEdited: userEdited ?? false,
+      },
+      update: {
+        type,
+        text,
+        userEdited: userEdited ?? true,
+      },
+    });
+
+    res.json(label);
+  } catch (error) {
+    console.error("Error saving connection label:", error);
+    res.status(500).json({ error: "Failed to save connection label" });
+  }
+});
+
+// Get canvas state for a tree
+router.get("/tree/:id/canvas-state", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const canvasState = await prisma.canvasState.findUnique({
+      where: { treeId: id },
+    });
+
+    res.json(canvasState);
+  } catch (error) {
+    console.error("Error fetching canvas state:", error);
+    res.status(500).json({ error: "Failed to fetch canvas state" });
+  }
+});
+
+// Save canvas state
+router.post("/canvas-state", async (req, res) => {
+  try {
+    const { treeId, userAnnotations, nodePositionOverrides } = req.body;
+
+    const canvasState = await prisma.canvasState.upsert({
+      where: { treeId },
+      create: {
+        treeId,
+        userAnnotations,
+        nodePositionOverrides,
+      },
+      update: {
+        userAnnotations,
+        nodePositionOverrides,
+      },
+    });
+
+    res.json(canvasState);
+  } catch (error) {
+    console.error("Error saving canvas state:", error);
+    res.status(500).json({ error: "Failed to save canvas state" });
   }
 });
 
