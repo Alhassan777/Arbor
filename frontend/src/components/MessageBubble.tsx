@@ -4,6 +4,9 @@ import { useToastStore } from '../store/toastStore';
 import MarkdownMessage from './MarkdownMessage';
 import { formatRelativeTime, formatFullDate } from '../utils/time';
 import TextSelectionPopup from './TextSelectionPopup';
+import IconButton from './ui/IconButton';
+import { Icons } from './ui/Icons';
+import { cn } from '../lib/utils';
 import type { Message } from '../types';
 
 interface MessageBubbleProps {
@@ -20,21 +23,21 @@ export default function MessageBubble({ message, onInsertText }: MessageBubblePr
   const { createBranch } = useConversationStore();
   const { addToast } = useToastStore();
 
+  const isUser = message.role === 'user';
+
   const handleTextSelection = () => {
     const selection = window.getSelection();
     const text = selection?.toString().trim() || '';
 
     if (text.length > 0) {
       setSelectedText(text);
-
-      // Get selection position for popup
       const range = selection?.getRangeAt(0);
       const rect = range?.getBoundingClientRect();
 
       if (rect) {
         setPopupPosition({
-          x: rect.left + rect.width / 2 - 120, // Center popup
-          y: rect.bottom + 10, // Below selection
+          x: rect.left + rect.width / 2 - 120,
+          y: rect.bottom + 10,
         });
         setShowSelectionPopup(true);
       }
@@ -84,36 +87,37 @@ export default function MessageBubble({ message, onInsertText }: MessageBubblePr
     }
   };
 
-  const isUser = message.role === 'user';
-
   return (
     <div
-      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+      className={cn('flex group', isUser ? 'justify-end' : 'justify-start')}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
     >
-      <div className={`relative max-w-[85%] md:max-w-[70%]`}>
+      <div className="relative max-w-[85%] md:max-w-[70%]">
+        {/* Message Content */}
         <div
-          className={`rounded-lg px-3 md:px-4 py-2 md:py-3 ${
+          className={cn(
+            'rounded-2xl px-4 md:px-5 py-3 md:py-4 transition-all duration-200',
             isUser
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
-          }`}
+              ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-md'
+              : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-50 border border-gray-200 dark:border-gray-700 shadow-sm'
+          )}
           onMouseUp={handleTextSelection}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
+            <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
           ) : (
             <MarkdownMessage content={message.content} />
           )}
 
           {/* Timestamp */}
-          <div className="mt-1">
+          <div className="mt-2">
             <span
-              className={`text-xs ${
-                isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
-              }`}
+              className={cn(
+                'text-xs font-medium',
+                isUser ? 'text-blue-200' : 'text-gray-400 dark:text-gray-500'
+              )}
               title={formatFullDate(message.timestamp)}
             >
               {formatRelativeTime(message.timestamp)}
@@ -121,56 +125,28 @@ export default function MessageBubble({ message, onInsertText }: MessageBubblePr
           </div>
         </div>
 
-        {/* Action buttons */}
-        {isHovered && (
-          <div className={`absolute ${isUser ? '-left-16 md:-left-24' : '-right-16 md:-right-24'} top-2 flex space-x-1`}>
-            {/* Copy button */}
-            <button
-              onClick={handleCopy}
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
-              title="Copy message"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 text-gray-600 dark:text-gray-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
-            </button>
+        {/* Action Buttons */}
+        <div
+          className={cn(
+            'absolute top-3 flex gap-1',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            isUser ? '-left-14 md:-left-16' : '-right-14 md:-right-16'
+          )}
+        >
+          <IconButton
+            icon={<Icons.Copy className="text-gray-600 dark:text-gray-400" />}
+            label="Copy message"
+            onClick={handleCopy}
+          />
 
-            {/* Branch button for assistant messages */}
-            {!isUser && (
-              <button
-                onClick={handleBranch}
-                className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
-                title="Create a new branch from here"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4 text-gray-600 dark:text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                  />
-                </svg>
-              </button>
-            )}
-          </div>
-        )}
+          {!isUser && (
+            <IconButton
+              icon={<Icons.Branch className="text-gray-600 dark:text-gray-400" />}
+              label="Create a new branch from here"
+              onClick={handleBranch}
+            />
+          )}
+        </div>
 
         {/* Text Selection Popup */}
         {!isUser && (
