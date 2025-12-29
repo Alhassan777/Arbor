@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from 'lucide-react';
 
 interface AppLayoutProps {
   leftSidebar: React.ReactNode;
@@ -11,7 +11,8 @@ interface AppLayoutProps {
   rightSidebar: React.ReactNode;
   rightSidebarOpen: boolean;
   onToggleRightSidebar: () => void;
-  onFullGraphMode?: () => void;
+  isFullGraphMode?: boolean;
+  onToggleFullGraphMode?: () => void;
 }
 
 export default function AppLayout({
@@ -24,7 +25,8 @@ export default function AppLayout({
   rightSidebar,
   rightSidebarOpen,
   onToggleRightSidebar,
-  onFullGraphMode,
+  isFullGraphMode,
+  onToggleFullGraphMode,
 }: AppLayoutProps) {
   return (
     <div className="flex h-screen bg-midnight-soil overflow-hidden relative">
@@ -115,16 +117,25 @@ export default function AppLayout({
                 </button>
               )}
 
-              {/* Full graph mode button */}
-              {onFullGraphMode && (
+              {/* Full graph mode toggle button */}
+              {onToggleFullGraphMode && (
                 <button
-                  onClick={onFullGraphMode}
+                  onClick={onToggleFullGraphMode}
                   className="p-1.5 rounded-organic bg-forest-floor/80 backdrop-blur border border-branch text-lichen hover:bg-canopy hover:text-midnight-soil transition-all flex items-center gap-1.5"
-                  title="Full graph mode (⌘⇧G)"
-                  aria-label="Full graph mode"
+                  title={isFullGraphMode ? "Restore layout (⌘⇧G)" : "Full graph mode (⌘⇧G)"}
+                  aria-label={isFullGraphMode ? "Restore layout" : "Full graph mode"}
                 >
-                  <Maximize2 className="h-4 w-4" />
-                  <span className="text-xs font-medium">Annotate</span>
+                  {isFullGraphMode ? (
+                    <>
+                      <Minimize2 className="h-4 w-4" />
+                      <span className="text-xs font-medium">Restore</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="h-4 w-4" />
+                      <span className="text-xs font-medium">Annotate</span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
