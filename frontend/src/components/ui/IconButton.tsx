@@ -10,10 +10,10 @@ export default function IconButton({ icon, label, className, ...props }: IconBut
   return (
     <button
       className={cn(
-        'p-2.5 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm',
-        'shadow-md hover:shadow-lg hover:scale-110',
+        'p-2.5 rounded-organic-lg bg-forest-floor/90 backdrop-blur-sm',
+        'shadow-sm hover:shadow-md hover:scale-110',
         'transition-all duration-200',
-        'border border-gray-200 dark:border-gray-700',
+        'border border-branch text-birch hover:text-parchment hover:bg-undergrowth',
         className
       )}
       title={label}
@@ -23,3 +23,5 @@ export default function IconButton({ icon, label, className, ...props }: IconBut
     </button>
   );
 }
+
+export { IconButton };

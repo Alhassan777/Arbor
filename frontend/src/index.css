@@ -3,14 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+  }
+
   * {
-    @apply border-border;
+    @apply border-branch;
   }
 
   body {
-    @apply bg-background text-text-primary font-sans;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    @apply bg-midnight-soil text-parchment font-sans antialiased;
+    font-feature-settings: 'cv11', 'ss01'; /* Plus Jakarta Sans stylistic features */
   }
 }
 
@@ -20,23 +23,32 @@
   overflow: hidden;
 }
 
-/* Custom scrollbar styling for dark theme */
+/* Custom scrollbar styling - Arbor organic theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.03);
+  @apply bg-transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
+  @apply bg-branch rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  @apply bg-lichen;
+}
+
+/* Selection styling */
+::selection {
+  @apply bg-canopy/30 text-parchment;
+}
+
+/* Focus ring - organic feel */
+*:focus-visible {
+  @apply outline-none ring-2 ring-canopy/50 ring-offset-2 ring-offset-midnight-soil;
 }
 
 /* React Flow custom styling */

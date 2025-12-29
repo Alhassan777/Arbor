@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ConversationTree } from '../types';
+import type { ConversationTree, ConversationNode } from '../types';
 import { api } from '../api/client';
 import { useSettingsStore } from './settingsStore';
 import { generateConnectionLabel } from '../lib/ai/connectionLabeler';

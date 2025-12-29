@@ -60,7 +60,7 @@ export function createNodeElements(
 ): ExcalidrawElement[] {
   const seed = generateSeed();
 
-  // Create rectangle for node
+  // Create rectangle for node - Arbor organic style
   const rectangle: ExcalidrawElement = {
     id: `node-rect-${node.id}`,
     type: 'rectangle',
@@ -69,14 +69,14 @@ export function createNodeElements(
     width: NODE_WIDTH,
     height: NODE_HEIGHT,
     angle: 0,
-    strokeColor: isActive ? '#6366f1' : '#3f3f46',
-    backgroundColor: isActive ? 'rgba(99, 102, 241, 0.1)' : '#18181b',
+    strokeColor: isActive ? '#2dd4a7' : '#2a3530',
+    backgroundColor: isActive ? 'rgba(45, 212, 167, 0.15)' : '#131917',
     fillStyle: 'solid',
     strokeWidth: 2,
     strokeStyle: 'solid',
     roughness: 0, // 0 = clean lines, 1+ = hand-drawn look
     opacity: 100,
-    roundness: { type: 3, value: 12 }, // rounded corners
+    roundness: { type: 3, value: 14 }, // organic rounded corners
     seed,
     version: 1,
     versionNonce: generateSeed(),
@@ -98,7 +98,7 @@ export function createNodeElements(
     width: NODE_WIDTH - 32,
     height: 20,
     angle: 0,
-    strokeColor: '#f1f1f4',
+    strokeColor: '#e8efe9',
     backgroundColor: 'transparent',
     fillStyle: 'solid',
     strokeWidth: 1,
@@ -142,7 +142,7 @@ export function createConnectionElements(
   const endX = toNode.x + toNode.width / 2;
   const endY = toNode.y;
 
-  // Create arrow
+  // Create arrow - Arbor style with gradient concept
   const arrow: ExcalidrawElement = {
     id: `connection-arrow-${connectionId}`,
     type: 'arrow',
@@ -151,7 +151,7 @@ export function createConnectionElements(
     width: endX - startX,
     height: endY - startY,
     angle: 0,
-    strokeColor: '#6366f1',
+    strokeColor: '#2dd4a7',
     backgroundColor: 'transparent',
     fillStyle: 'solid',
     strokeWidth: 2,
@@ -200,8 +200,8 @@ export function createConnectionElements(
     width: 80,
     height: 20,
     angle: 0,
-    strokeColor: '#a1a1aa',
-    backgroundColor: '#0a0a0f',
+    strokeColor: '#9caba3',
+    backgroundColor: '#1c2420',
     fillStyle: 'solid',
     strokeWidth: 1,
     strokeStyle: 'solid',
