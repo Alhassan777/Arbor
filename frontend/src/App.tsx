@@ -14,7 +14,7 @@ function App() {
   const { apiKey, theme } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
   const [isChatHistoryCollapsed, setIsChatHistoryCollapsed] = useState(false);
-  const [isGraphCollapsed, setIsGraphCollapsed] = useState(true);
+  const [isGraphCollapsed, setIsGraphCollapsed] = useState(false);
 
   useEffect(() => {
     // Initialize a new conversation tree on mount if none exists

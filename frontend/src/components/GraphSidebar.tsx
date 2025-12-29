@@ -122,13 +122,13 @@ export default function GraphSidebar({ isCollapsed, onToggle, onOpenSettings }: 
 
   if (isCollapsed) {
     return (
-      <div className="hidden md:flex w-12 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 items-start justify-center pt-4">
+      <div className="w-12 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex items-start justify-center pt-4">
         <button
           onClick={onToggle}
           className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
           title="Expand graph view"
         >
-          <Icons.ChevronLeft className="text-gray-600 dark:text-gray-400" />
+          <Icons.ChevronLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
     );
