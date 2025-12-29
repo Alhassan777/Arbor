@@ -27,7 +27,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
     }),
     {
-      name: 'branchchat-settings',
+      name: 'arbor-settings',
     }
   )
 );

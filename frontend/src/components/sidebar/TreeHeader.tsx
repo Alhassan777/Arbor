@@ -11,7 +11,7 @@ export default function TreeHeader({ onNewChat, onToggle }: TreeHeaderProps) {
     <div className="px-4 py-3 border-b border-border flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Menu className="h-4 w-4 text-text-secondary" />
-        <h2 className="text-sm font-semibold text-text-primary">BranchChat</h2>
+        <h2 className="text-sm font-semibold text-text-primary">Arbor</h2>
       </div>
       <div className="flex items-center gap-1">
         <Tooltip>

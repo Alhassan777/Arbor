@@ -1,4 +1,4 @@
-# BranchChat
+# Arbor
 
 A web application that enables branching conversations with AI, allowing users to explore multiple conversation paths from any point. Features a visual graph sidebar to navigate the conversation tree.
 
@@ -55,7 +55,7 @@ cp .env.example .env
 
 Edit `.env` and add your database URL and Gemini API key:
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/branchchat?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/arbor?schema=public"
 GEMINI_API_KEY="your-gemini-api-key-here"
 PORT=3001
 ```

@@ -1,7 +1,7 @@
 {
-  "name": "branchchat-backend",
+  "name": "arbor-backend",
   "version": "1.0.0",
-  "description": "Backend for BranchChat - Branching conversation app",
+  "description": "Backend for Arbor - Branching conversation app",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
