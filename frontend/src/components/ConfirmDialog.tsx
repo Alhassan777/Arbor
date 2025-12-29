@@ -1,3 +1,6 @@
+import { Button } from './ui/Button';
+import { cn } from '../lib/utils';
+
 interface ConfirmDialogProps {
   isOpen: boolean;
   title: string;
@@ -20,12 +23,6 @@ export default function ConfirmDialog({
   variant = 'warning',
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
-
-  const variantStyles = {
-    danger: 'bg-red-600 hover:bg-red-700',
-    warning: 'bg-yellow-600 hover:bg-yellow-700',
-    info: 'bg-blue-600 hover:bg-blue-700',
-  };
 
   return (
     <>
@@ -51,19 +48,20 @@ export default function ConfirmDialog({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <Button onClick={onCancel} variant="secondary">
               {cancelText}
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={onConfirm}
-              className={`px-4 py-2 text-white rounded-lg transition-colors ${variantStyles[variant]}`}
+              className={cn(
+                variant === 'danger' && 'bg-red-600 hover:bg-red-700',
+                variant === 'warning' && 'bg-yellow-600 hover:bg-yellow-700',
+                variant === 'info' && 'bg-blue-600 hover:bg-blue-700'
+              )}
             >
               {confirmText}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
