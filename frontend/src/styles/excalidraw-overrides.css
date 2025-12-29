@@ -1,0 +1,154 @@
+/* Excalidraw Dark Theme Overrides */
+
+.excalidraw {
+  --color-primary: #6366f1;
+  --color-primary-darker: #4f46e5;
+  --color-primary-darkest: #4338ca;
+  --color-primary-light: rgba(99, 102, 241, 0.2);
+
+  --color-surface-low: #12131a;
+  --color-surface-mid: #1a1b24;
+  --color-surface-high: #27272a;
+
+  --color-on-surface: #f1f1f4;
+  --color-on-surface-secondary: #a1a1aa;
+
+  --color-border: rgba(255, 255, 255, 0.06);
+}
+
+/* Main Excalidraw container */
+.excalidraw.theme--dark {
+  --color-primary: #6366f1;
+  --color-primary-darker: #4f46e5;
+  --color-primary-darkest: #4338ca;
+}
+
+/* Toolbar styling */
+.excalidraw .App-toolbar {
+  background: #12131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+}
+
+.excalidraw .App-toolbar__extra-tools-trigger {
+  background: #1a1b24;
+}
+
+.excalidraw .App-toolbar__divider {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Island (floating panels) */
+.excalidraw .Island {
+  background: #12131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Buttons */
+.excalidraw button {
+  color: #f1f1f4;
+}
+
+.excalidraw button:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+.excalidraw button.active {
+  background: rgba(99, 102, 241, 0.2);
+  color: #6366f1;
+}
+
+/* Canvas background */
+.excalidraw .excalidraw-canvas-wrapper {
+  background: #0a0a0f;
+}
+
+/* Scrollbars */
+.excalidraw ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.excalidraw ::-webkit-scrollbar-track {
+  background: #12131a;
+}
+
+.excalidraw ::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 4px;
+}
+
+.excalidraw ::-webkit-scrollbar-thumb:hover {
+  background: #52525b;
+}
+
+/* Hide unwanted UI elements */
+.excalidraw .layer-ui__wrapper__footer-right {
+  /* Keep the help button visible but style it */
+}
+
+.excalidraw .layer-ui__wrapper__footer-left {
+  /* Keep attribution */
+}
+
+/* Context menu */
+.excalidraw .context-menu {
+  background: #12131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.excalidraw .context-menu-item {
+  color: #f1f1f4;
+}
+
+.excalidraw .context-menu-item:hover {
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Input fields */
+.excalidraw input,
+.excalidraw textarea {
+  background: #1a1b24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f1f1f4;
+}
+
+.excalidraw input:focus,
+.excalidraw textarea:focus {
+  border-color: #6366f1;
+  outline: none;
+}
+
+/* Dropdown menus */
+.excalidraw select {
+  background: #1a1b24;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f1f1f4;
+}
+
+/* Checkbox and radio */
+.excalidraw input[type="checkbox"],
+.excalidraw input[type="radio"] {
+  accent-color: #6366f1;
+}
+
+/* Color picker */
+.excalidraw .color-picker {
+  background: #12131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Stats panel */
+.excalidraw .Stats {
+  background: #12131a;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: #f1f1f4;
+}
+
+/* Ensure good contrast for text on canvas */
+.excalidraw .excalidraw-textEditorContainer textarea {
+  color: #f1f1f4;
+  caret-color: #6366f1;
+}

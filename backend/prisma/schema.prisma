@@ -15,7 +15,9 @@ model ConversationTree {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  nodes       ConversationNode[]
+  nodes             ConversationNode[]
+  connectionLabels  ConnectionLabel[]
+  canvasState       CanvasState?
 
   @@map("conversation_trees")
 }
@@ -54,4 +56,35 @@ model Message {
 
   @@index([conversationId])
   @@map("messages")
+}
+
+model ConnectionLabel {
+  id            String   @id @default(uuid())
+  connectionId  String   @unique // Format: "parentId-childId"
+  treeId        String
+  type          String   // 'deepens', 'explores', 'contrasts', 'examples', 'applies', 'questions', 'extends', 'summarizes', 'custom'
+  text          String   // Display label
+  aiGenerated   Boolean  @default(true)
+  userEdited    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  tree          ConversationTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+
+  @@index([treeId])
+  @@index([connectionId])
+  @@map("connection_labels")
+}
+
+model CanvasState {
+  id                    String   @id @default(uuid())
+  treeId                String   @unique
+  userAnnotations       Json     // User-created Excalidraw elements
+  nodePositionOverrides Json     // Custom node positions
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  tree                  ConversationTree @relation(fields: [treeId], references: [id], onDelete: Cascade)
+
+  @@map("canvas_states")
 }

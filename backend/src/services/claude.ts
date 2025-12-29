@@ -85,3 +85,42 @@ export async function generateSummary(
 
   return '';
 }
+
+export async function generateConnectionLabel(
+  prompt: string,
+  apiKey?: string
+): Promise<{ type: string; label: string }> {
+  const client = getClient(apiKey);
+
+  const response = await client.messages.create({
+    model: 'claude-3-5-haiku-20241022',
+    max_tokens: 100,
+    messages: [{
+      role: 'user',
+      content: prompt,
+    }],
+  });
+
+  const content = response.content[0];
+  if (content.type === 'text') {
+    try {
+      // Try to parse JSON response
+      const parsed = JSON.parse(content.text);
+      return {
+        type: parsed.type || 'extends',
+        label: parsed.label || 'branch',
+      };
+    } catch (error) {
+      // If parsing fails, return default
+      return {
+        type: 'extends',
+        label: 'branch',
+      };
+    }
+  }
+
+  return {
+    type: 'extends',
+    label: 'branch',
+  };
+}
