@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -17,6 +17,18 @@ interface GraphSidebarProps {
 export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
+
+  // Auto-collapse on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const isMobile = window.innerWidth < 768;
+      setIsCollapsed(isMobile);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Convert conversation tree to React Flow nodes and edges
   const { nodes: flowNodes, edges: flowEdges } = useMemo(() => {
@@ -120,15 +132,40 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
 
   if (isCollapsed) {
     return (
-      <div className="w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex items-start justify-center pt-4">
+      <>
+        {/* Collapsed sidebar - hidden on mobile, small strip on desktop */}
+        <div className="hidden md:flex w-12 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 items-start justify-center pt-4">
+          <button
+            onClick={() => setIsCollapsed(false)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Expand sidebar"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5 text-gray-600 dark:text-gray-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Floating toggle button for mobile */}
         <button
           onClick={() => setIsCollapsed(false)}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          title="Expand sidebar"
+          className="md:hidden fixed top-4 left-4 z-50 p-3 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+          title="Open menu"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 text-gray-600 dark:text-gray-400"
+            className="h-6 w-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -137,20 +174,28 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M9 5l7 7-7 7"
+              d="M4 6h16M4 12h16M4 18h16"
             />
           </svg>
         </button>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversation Tree</h2>
-        <div className="flex items-center space-x-1">
+    <>
+      {/* Backdrop for mobile */}
+      <div
+        className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+        onClick={() => setIsCollapsed(true)}
+      />
+
+      {/* Sidebar */}
+      <div className="w-80 md:w-80 fixed md:relative inset-y-0 left-0 z-50 md:z-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        {/* Header */}
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Conversation Tree</h2>
+          <div className="flex items-center space-x-1">
           <button
             onClick={onOpenSettings}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
@@ -200,21 +245,22 @@ export default function GraphSidebar({ onOpenSettings }: GraphSidebarProps) {
         </div>
       </div>
 
-      {/* Graph */}
-      <div className="flex-1">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onNodeClick={onNodeClick}
-          fitView
-          attributionPosition="bottom-left"
-        >
-          <Background />
-          <Controls />
-        </ReactFlow>
+        {/* Graph */}
+        <div className="flex-1">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onNodeClick={onNodeClick}
+            fitView
+            attributionPosition="bottom-left"
+          >
+            <Background />
+            <Controls />
+          </ReactFlow>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

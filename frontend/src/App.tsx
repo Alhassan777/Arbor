@@ -36,6 +36,20 @@ function App() {
     }
   }, [apiKey]);
 
+  useEffect(() => {
+    // Global keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + K to toggle settings
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSettings((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       <GraphSidebar onOpenSettings={() => setShowSettings(true)} />

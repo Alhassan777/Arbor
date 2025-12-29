@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useConversationStore } from '../store/conversationStore';
 import { useToastStore } from '../store/toastStore';
 import MarkdownMessage from './MarkdownMessage';
+import { formatRelativeTime, formatFullDate } from '../utils/time';
 import type { Message } from '../types';
 
 interface MessageBubbleProps {
@@ -54,10 +55,11 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
       className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={() => setIsHovered(true)}
     >
-      <div className={`relative max-w-[70%]`}>
+      <div className={`relative max-w-[85%] md:max-w-[70%]`}>
         <div
-          className={`rounded-lg px-4 py-3 ${
+          className={`rounded-lg px-3 md:px-4 py-2 md:py-3 ${
             isUser
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100'
@@ -69,15 +71,27 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           ) : (
             <MarkdownMessage content={message.content} />
           )}
+
+          {/* Timestamp */}
+          <div className="mt-1">
+            <span
+              className={`text-xs ${
+                isUser ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+              }`}
+              title={formatFullDate(message.timestamp)}
+            >
+              {formatRelativeTime(message.timestamp)}
+            </span>
+          </div>
         </div>
 
         {/* Action buttons */}
         {isHovered && (
-          <div className={`absolute ${isUser ? '-left-24' : '-right-24'} top-2 flex space-x-1`}>
+          <div className={`absolute ${isUser ? '-left-16 md:-left-24' : '-right-16 md:-right-24'} top-2 flex space-x-1`}>
             {/* Copy button */}
             <button
               onClick={handleCopy}
-              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
               title="Copy message"
             >
               <svg
@@ -100,7 +114,7 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             {!isUser && (
               <button
                 onClick={handleBranch}
-                className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors touch-manipulation"
                 title="Branch conversation"
               >
                 <svg
