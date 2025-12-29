@@ -6,18 +6,20 @@ import AppLayout from './components/layout/AppLayout';
 import ConversationTree from './components/sidebar/ConversationTree';
 import ChatContainer from './components/chat/ChatContainer';
 import GraphView from './components/graph/GraphView';
+import { ExcalidrawCanvas } from './components/graph/ExcalidrawCanvas';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
 import { TooltipProvider } from './components/ui/Tooltip';
 
 function App() {
-  const { initializeNewTree, tree } = useConversationStore();
+  const { initializeNewTree, tree, currentNodeId, setCurrentNode } = useConversationStore();
   const { toasts, removeToast } = useToastStore();
   const { apiKey } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+  const [isAnnotateMode, setIsAnnotateMode] = useState(false);
 
   useEffect(() => {
     // Initialize a new conversation tree on mount if none exists
@@ -92,21 +94,8 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [initializeNewTree]);
 
-  // Check if we're in full graph mode (only graph visible)
-  const isFullGraphMode = !isLeftSidebarOpen && !isChatPanelOpen && isRightSidebarOpen;
-
-  const handleToggleFullGraphMode = () => {
-    if (isFullGraphMode) {
-      // Restore to default layout
-      setIsLeftSidebarOpen(true);
-      setIsChatPanelOpen(true);
-      setIsRightSidebarOpen(true);
-    } else {
-      // Enter full graph mode
-      setIsLeftSidebarOpen(false);
-      setIsChatPanelOpen(false);
-      setIsRightSidebarOpen(true);
-    }
+  const handleToggleAnnotateMode = () => {
+    setIsAnnotateMode((prev) => !prev);
   };
 
   return (
@@ -121,8 +110,17 @@ function App() {
         rightSidebar={<GraphView onToggle={() => setIsRightSidebarOpen(false)} />}
         rightSidebarOpen={isRightSidebarOpen}
         onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
-        isFullGraphMode={isFullGraphMode}
-        onToggleFullGraphMode={handleToggleFullGraphMode}
+        isAnnotateMode={isAnnotateMode}
+        onToggleAnnotateMode={handleToggleAnnotateMode}
+        excalidrawOverlay={
+          tree && isAnnotateMode ? (
+            <ExcalidrawCanvas
+              tree={tree}
+              currentNodeId={currentNodeId}
+              onNodeSelect={setCurrentNode}
+            />
+          ) : null
+        }
       />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />

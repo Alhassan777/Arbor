@@ -1,4 +1,4 @@
-import type { ConversationTree, ConversationNode } from '../../types';
+import type { ConversationTree } from '../../types';
 
 export interface NodePosition {
   id: string;
