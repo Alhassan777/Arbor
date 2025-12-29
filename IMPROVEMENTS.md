@@ -41,29 +41,65 @@ This document outlines all the improvements made to BranchChat for better UI/UX 
 - **Better Error Messages**: API errors now show descriptive messages
 - **User-Friendly**: Errors are displayed via toast notifications instead of console logs
 
+### 5. **Dark Mode Support** 🌙 *(NEW!)*
+- **Theme Toggle**: Added theme switcher to Settings modal with sun/moon icons
+- **Enabled Dark Mode**: Configured Tailwind CSS with 'class' strategy for dark mode
+- **All Components Updated**: ChatArea, GraphSidebar, MessageBubble, Settings with dark styles
+- **Persistent Theme**: Theme preference saved to localStorage
+- **Smooth Transitions**: Seamless switching between light and dark modes
+- **Dark-Aware Syntax**: Code highlighting adapts to current theme
+
+**Files Changed:**
+- `frontend/tailwind.config.js` - Enabled dark mode
+- `frontend/src/components/Settings.tsx` - Added theme toggle UI
+- `frontend/src/components/ChatArea.tsx` - Dark mode styles
+- `frontend/src/components/GraphSidebar.tsx` - Dark mode styles
+- `frontend/src/components/MessageBubble.tsx` - Dark mode styles
+
+### 6. **Markdown Support for Messages** 📝 *(NEW!)*
+- **Rich Text Rendering**: AI responses now support full Markdown
+- **Syntax Highlighting**: Code blocks with language-specific highlighting
+- **GFM Support**: GitHub Flavored Markdown (tables, task lists, etc.)
+- **Smart Styling**: All markdown elements properly styled for light/dark modes
+- **User Messages Plain**: User messages remain plain text for simplicity
+
+**Features:**
+- Code blocks with syntax highlighting (oneDark/oneLight themes)
+- Inline code with background styling
+- Tables, blockquotes, lists, headings
+- Links open in new tabs
+- Responsive and accessible
+
+**Files Changed:**
+- `frontend/src/components/MarkdownMessage.tsx` - New markdown renderer
+- `frontend/src/components/MessageBubble.tsx` - Uses markdown for AI messages
+- `frontend/package.json` - Added markdown dependencies
+
+### 7. **Editable Conversation Titles** ✏️ *(NEW!)*
+- **Click to Edit**: Click any conversation title to edit inline
+- **Keyboard Shortcuts**: Enter to save, Escape to cancel
+- **Auto-save**: Saves automatically on blur
+- **Visual Feedback**: Edit icon appears on hover
+- **Toast Confirmation**: Success message when title updates
+- **Smooth UX**: Seamless transition between view and edit modes
+
+**Files Changed:**
+- `frontend/src/components/ChatArea.tsx` - Added inline title editing
+
+### 8. **Copy Message Feature** 📋 *(NEW!)*
+- **Universal Copy**: Copy button on ALL messages (user and assistant)
+- **Smart Positioning**: Shows on hover next to other action buttons
+- **Clipboard API**: Modern clipboard API for reliable copying
+- **User Feedback**: Toast notification confirms successful copy
+- **Error Handling**: Graceful error handling with error toast
+- **Dark Mode**: Button styled for both light and dark themes
+
+**Files Changed:**
+- `frontend/src/components/MessageBubble.tsx` - Added copy functionality
+
 ## 🚧 Planned Improvements
 
 ### High Priority
-
-1. **Dark Mode Support** 🌙
-   - Toggle between light and dark themes
-   - Theme preference saved to localStorage
-   - Consistent styling across all components
-
-2. **Editable Conversation Titles** ✏️
-   - Click on conversation title to edit inline
-   - Auto-save on blur or Enter key
-   - Visual feedback during editing
-
-3. **Markdown Support for Messages** 📝
-   - Render markdown in AI responses
-   - Support for code blocks with syntax highlighting
-   - Tables, lists, and formatting
-
-4. **Copy Message Feature** 📋
-   - Copy button on each message
-   - One-click copy to clipboard
-   - Toast confirmation
 
 ### Medium Priority
 
@@ -189,4 +225,4 @@ const exportMarkdown = () => {
 ---
 
 **Last Updated**: 2025-12-29
-**Version**: 1.1.0
+**Version**: 2.0.0 - Major UX Update (Dark Mode, Markdown, Editable Titles, Copy)
