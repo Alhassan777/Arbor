@@ -401,6 +401,24 @@ class ArborExtensionProduction {
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
       }
 
+      .tree-item-container:hover .delete-tree-btn {
+        opacity: 1 !important;
+      }
+
+      .delete-tree-btn:hover {
+        color: #ef4444 !important;
+        background: rgba(239, 68, 68, 0.1) !important;
+      }
+
+      .tree-node-container:hover .delete-node-btn {
+        opacity: 1 !important;
+      }
+
+      .delete-node-btn:hover {
+        color: #ef4444 !important;
+        background: rgba(239, 68, 68, 0.1) !important;
+      }
+
       #arbor-sidebar-container {
         left: 0;
         width: 320px;
@@ -633,21 +651,43 @@ class ArborExtensionProduction {
           const isActive = tree.id === this.state.currentTreeId;
           const nodeCount = Object.keys(tree.nodes).length;
           return `
-            <div class="tree-item" data-tree-id="${tree.id}" style="
-              background: ${isActive ? '#2d3748' : '#252525'};
-              padding: 10px 12px;
+            <div class="tree-item-container" data-tree-id="${tree.id}" style="
+              position: relative;
               margin-bottom: 6px;
-              border-radius: 6px;
-              cursor: pointer;
-              border-left: 3px solid ${isActive ? '#4a9eff' : '#666'};
-              transition: all 0.2s;
             ">
-              <div style="color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 4px;">
-                ${tree.title}
+              <div class="tree-item" style="
+                background: ${isActive ? '#2d3748' : '#252525'};
+                padding: 10px 12px;
+                padding-right: 40px;
+                border-radius: 6px;
+                cursor: pointer;
+                border-left: 3px solid ${isActive ? '#4a9eff' : '#666'};
+                transition: all 0.2s;
+              ">
+                <div style="color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 4px;">
+                  ${tree.title}
+                </div>
+                <div style="color: #999; font-size: 11px;">
+                  ${nodeCount} chat${nodeCount !== 1 ? 's' : ''} • ${isActive ? 'Active' : 'Click to view'}
+                </div>
               </div>
-              <div style="color: #999; font-size: 11px;">
-                ${nodeCount} chat${nodeCount !== 1 ? 's' : ''} • ${isActive ? 'Active' : 'Click to view'}
-              </div>
+              <button class="delete-tree-btn" data-tree-id="${tree.id}" style="
+                position: absolute;
+                right: 8px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: transparent;
+                border: none;
+                color: #666;
+                font-size: 18px;
+                cursor: pointer;
+                padding: 4px 8px;
+                border-radius: 4px;
+                transition: all 0.2s;
+                opacity: 0;
+              " title="Delete tree">
+                🗑️
+              </button>
             </div>
           `;
         }).join('')}
@@ -763,15 +803,36 @@ class ArborExtensionProduction {
     }[node.platform];
 
     let html = `
-      <div class="tree-node ${isActive ? 'active' : ''}"
-           data-node-id="${nodeId}"
-           draggable="${!isRoot}"
-           style="cursor: ${isRoot ? 'pointer' : 'grab'};">
-        <div class="tree-node-title">${platformEmoji} ${node.title}</div>
-        <div class="tree-node-meta">
-          <span>${node.children.length} branches</span>
-          ${node.connectionLabel ? `<span>• ${node.connectionLabel}</span>` : ''}
+      <div class="tree-node-container" style="position: relative;">
+        <div class="tree-node ${isActive ? 'active' : ''}"
+             data-node-id="${nodeId}"
+             draggable="${!isRoot}"
+             style="cursor: ${isRoot ? 'pointer' : 'grab'}; padding-right: 30px;">
+          <div class="tree-node-title">${platformEmoji} ${node.title}</div>
+          <div class="tree-node-meta">
+            <span>${node.children.length} branches</span>
+            ${node.connectionLabel ? `<span>• ${node.connectionLabel}</span>` : ''}
+          </div>
         </div>
+        ${!isRoot ? `
+          <button class="delete-node-btn" data-node-id="${nodeId}" style="
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: #666;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 3px;
+            transition: all 0.2s;
+            opacity: 0;
+          " title="Delete this branch and all its children">
+            🗑️
+          </button>
+        ` : ''}
       </div>
     `;
 
@@ -1536,6 +1597,45 @@ class ArborExtensionProduction {
     }
   }
 
+  private async deleteTree(treeId: string) {
+    const tree = this.state.trees[treeId];
+    if (!tree) return;
+
+    const nodeCount = Object.keys(tree.nodes).length;
+    const message = `Delete tree "${tree.title}"?\n\nThis will permanently remove:\n• ${nodeCount} chat${nodeCount !== 1 ? 's' : ''}\n• All branches and connections\n\nThis action cannot be undone.`;
+
+    const confirmed = window.confirm(message);
+    if (!confirmed) return;
+
+    // Delete all nodes from IndexedDB
+    for (const nodeId of Object.keys(tree.nodes)) {
+      await db.deleteNode(nodeId);
+    }
+
+    // Delete tree from IndexedDB
+    await db.deleteTree(treeId);
+
+    // Remove from state
+    delete this.state.trees[treeId];
+
+    // If this was the current tree, clear current selection
+    if (this.state.currentTreeId === treeId) {
+      // Switch to another tree if available
+      const remainingTrees = Object.keys(this.state.trees);
+      if (remainingTrees.length > 0) {
+        this.state.currentTreeId = remainingTrees[0];
+        this.state.currentNodeId = this.state.trees[remainingTrees[0]]?.rootNodeId || null;
+      } else {
+        this.state.currentTreeId = null;
+        this.state.currentNodeId = null;
+      }
+      await this.saveState();
+    }
+
+    this.showNotification(`Tree "${tree.title}" deleted! 🗑️`, 'success');
+    this.refresh();
+  }
+
   private async deleteNode(nodeId: string) {
     if (!this.state.currentTreeId) return;
 
@@ -1545,11 +1645,25 @@ class ArborExtensionProduction {
     if (!node) return;
 
     if (nodeId === tree.rootNodeId) {
-      this.showNotification('Cannot delete root node!', 'error');
+      this.showNotification('Cannot delete root node! Delete the entire tree instead.', 'error');
       return;
     }
 
-    const confirm = window.confirm(`Delete "${node.title}" and all its children?`);
+    // Count total nodes to be deleted (node + all descendants)
+    const countDescendants = (id: string): number => {
+      const n = tree.nodes[id];
+      if (!n) return 0;
+      let count = 1;
+      n.children.forEach(childId => {
+        count += countDescendants(childId);
+      });
+      return count;
+    };
+
+    const totalToDelete = countDescendants(nodeId);
+    const message = `Delete "${node.title}"?\n\nThis will remove:\n• This chat\n• ${totalToDelete - 1} descendant${totalToDelete - 1 !== 1 ? 's' : ''}\n\nThis action cannot be undone.`;
+
+    const confirm = window.confirm(message);
     if (!confirm) return;
 
     // Remove from parent's children array
@@ -1585,7 +1699,7 @@ class ArborExtensionProduction {
 
     this.renderGraph();
     this.refresh();
-    this.showNotification('Node deleted! ❌', 'success');
+    this.showNotification(`Deleted ${totalToDelete} node${totalToDelete !== 1 ? 's' : ''}! 🗑️`, 'success');
   }
 
   private attachSidebarListeners() {
@@ -1612,9 +1726,21 @@ class ArborExtensionProduction {
       this.editTreeTitle();
     });
 
+    // Delete tree buttons
+    document.querySelectorAll('.delete-tree-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent tree switching
+        const treeId = (btn as HTMLElement).dataset.treeId;
+        if (treeId) {
+          await this.deleteTree(treeId);
+        }
+      });
+    });
+
     // Tree item click handlers (for switching trees)
     document.querySelectorAll('.tree-item').forEach((item) => {
-      const treeId = (item as HTMLElement).dataset.treeId;
+      const container = item.closest('.tree-item-container');
+      const treeId = container ? (container as HTMLElement).dataset.treeId : null;
 
       item.addEventListener('mouseenter', () => {
         if (treeId !== this.state.currentTreeId) {
@@ -1696,12 +1822,28 @@ class ArborExtensionProduction {
 
     document.getElementById('new-tree')?.addEventListener('click', () => this.createNewTree());
 
+    // Delete node buttons
+    document.querySelectorAll('.delete-node-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent navigation
+        const nodeId = (btn as HTMLElement).dataset.nodeId;
+        if (nodeId) {
+          await this.deleteNode(nodeId);
+        }
+      });
+    });
+
     document.querySelectorAll('.tree-node').forEach((node) => {
       const nodeEl = node as HTMLElement;
       const nodeId = nodeEl.dataset.nodeId;
 
       // Click to navigate
       nodeEl.addEventListener('click', (e) => {
+        // Don't navigate if clicking on delete button
+        if ((e.target as HTMLElement).classList.contains('delete-node-btn')) {
+          return;
+        }
+
         if (nodeId && this.state.currentTreeId) {
           const tree = this.state.trees[this.state.currentTreeId];
           const chatNode = tree.nodes[nodeId];
