@@ -88,14 +88,27 @@ class ArborExtensionProduction {
   }
 
   private scanAvailableChats() {
-    // Get all chats from ChatGPT sidebar
-    this.availableChats = this.currentPlatform.getAllChatsFromSidebar();
-    console.log(`📚 Found ${this.availableChats.length} available chats`);
+    // Delay scan to ensure ChatGPT sidebar is loaded
+    setTimeout(() => {
+      this.availableChats = this.currentPlatform.getAllChatsFromSidebar();
+      console.log(`📚 Found ${this.availableChats.length} available chats`);
 
-    // Refresh UI to show available chats
-    if (this.sidebarInjected) {
-      this.refresh();
-    }
+      // Refresh UI to show available chats
+      if (this.sidebarInjected) {
+        this.refresh();
+      }
+
+      // If no chats found, retry after a longer delay
+      if (this.availableChats.length === 0) {
+        setTimeout(() => {
+          this.availableChats = this.currentPlatform.getAllChatsFromSidebar();
+          console.log(`📚 Retry: Found ${this.availableChats.length} available chats`);
+          if (this.sidebarInjected) {
+            this.refresh();
+          }
+        }, 2000);
+      }
+    }, 500);
   }
 
   private async detectAndTrackCurrentChat() {
@@ -599,10 +612,6 @@ class ArborExtensionProduction {
   }
 
   private getSidebarHTML(): string {
-    const currentTree = this.state.currentTreeId
-      ? this.state.trees[this.state.currentTreeId]
-      : null;
-
     // Get untracked chats (available but not in any tree)
     const trackedUrls = new Set<string>();
     Object.values(this.state.trees).forEach(tree => {
@@ -612,76 +621,65 @@ class ArborExtensionProduction {
     });
 
     const untrackedChats = this.availableChats.filter(chat => !trackedUrls.has(chat.url));
+    const allTrees = Object.values(this.state.trees);
 
-    if (!currentTree) {
-      const availableChatsHTML = untrackedChats.length > 0 ? `
-        <div style="padding: 12px; border-top: 1px solid #333;">
-          <div style="color: #999; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
-            📚 Available Chats (${untrackedChats.length})
-          </div>
-          <div style="max-height: 300px; overflow-y: auto;">
-            ${untrackedChats.slice(0, 20).map((chat, index) => `
-              <div class="available-chat-item" data-chat-index="${index}" style="
-                background: #252525;
-                padding: 8px 10px;
-                margin-bottom: 6px;
-                border-radius: 4px;
-                cursor: pointer;
-                border-left: 2px solid #666;
-                font-size: 12px;
-                color: #ccc;
-                transition: all 0.2s;
-              ">
-                ${chat.title.substring(0, 50)}${chat.title.length > 50 ? '...' : ''}
-              </div>
-            `).join('')}
-            ${untrackedChats.length > 20 ? `<div style="color: #666; font-size: 11px; padding: 8px;">...and ${untrackedChats.length - 20} more</div>` : ''}
-          </div>
-          <div style="color: #666; font-size: 10px; margin-top: 8px;">
-            Click any chat to create a tree from it
-          </div>
-        </div>
-      ` : '';
-
-      return `
-        <div class="arbor-header">
-          <h2>🌳 Arbor Trees</h2>
-          <button class="arbor-toggle-btn" id="toggle-sidebar">Hide</button>
-        </div>
-        <div class="arbor-content">
-          <div class="empty-state">
-            <div class="empty-state-icon">🌱</div>
-            <div class="empty-state-text">
-              <strong>Welcome to Arbor!</strong><br><br>
-              ${untrackedChats.length > 0 ?
-                `<strong>Click any chat below to start a tree</strong>` :
-                `<strong>Visit a ChatGPT chat to get started</strong>`
-              }
-            </div>
-          </div>
-          ${availableChatsHTML}
-        </div>
-        <div class="action-buttons">
-          <button class="btn btn-secondary" id="new-tree" title="Start a new tree for a different project">
-            🌳 New Tree
-          </button>
-        </div>
-      `;
-    }
-
-    const treeHTML = this.renderTreeNode(currentTree.rootNodeId, currentTree);
-
-    // Show available chats in current tree view too
-    const availableChatsSection = untrackedChats.length > 0 ? `
-      <div style="padding: 12px; border-top: 1px solid #333; margin-top: 12px;">
+    // Render all trees section
+    const allTreesHTML = allTrees.length > 0 ? `
+      <div style="padding: 12px;">
         <div style="color: #999; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
-          📚 Available Chats (${untrackedChats.length})
+          🌳 My Trees (${allTrees.length})
         </div>
-        <div style="max-height: 200px; overflow-y: auto;">
-          ${untrackedChats.slice(0, 10).map((chat, index) => `
-            <div class="available-chat-item" data-chat-index="${index}" style="
+        ${allTrees.map(tree => {
+          const isActive = tree.id === this.state.currentTreeId;
+          const nodeCount = Object.keys(tree.nodes).length;
+          return `
+            <div class="tree-item" data-tree-id="${tree.id}" style="
+              background: ${isActive ? '#2d3748' : '#252525'};
+              padding: 10px 12px;
+              margin-bottom: 6px;
+              border-radius: 6px;
+              cursor: pointer;
+              border-left: 3px solid ${isActive ? '#4a9eff' : '#666'};
+              transition: all 0.2s;
+            ">
+              <div style="color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 4px;">
+                ${tree.title}
+              </div>
+              <div style="color: #999; font-size: 11px;">
+                ${nodeCount} chat${nodeCount !== 1 ? 's' : ''} • ${isActive ? 'Active' : 'Click to view'}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : '';
+
+    // Render current tree details if one is selected
+    const currentTreeHTML = this.state.currentTreeId && this.state.trees[this.state.currentTreeId] ? `
+      <div style="padding: 12px; border-top: 1px solid #333;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="color: #999; font-size: 12px; font-weight: 600;">
+            📊 Current Tree
+          </div>
+          <span id="tree-title-editable" style="color: #4a9eff; font-size: 11px; cursor: pointer;" title="Click to edit">
+            ✏️ Edit Name
+          </span>
+        </div>
+        ${this.renderTreeNode(this.state.trees[this.state.currentTreeId].rootNodeId, this.state.trees[this.state.currentTreeId])}
+      </div>
+    ` : '';
+
+    // Render untracked chats section
+    const untrackedChatsHTML = untrackedChats.length > 0 ? `
+      <div style="padding: 12px; border-top: 1px solid #333;">
+        <div style="color: #999; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
+          💬 Untracked Chats (${untrackedChats.length})
+        </div>
+        <div style="max-height: 250px; overflow-y: auto;">
+          ${untrackedChats.slice(0, 15).map((chat, index) => `
+            <div class="untracked-chat-item" data-chat-url="${chat.url}" data-chat-index="${index}" style="
               background: #252525;
-              padding: 6px 8px;
+              padding: 8px 10px;
               margin-bottom: 4px;
               border-radius: 4px;
               cursor: pointer;
@@ -689,28 +687,60 @@ class ArborExtensionProduction {
               font-size: 11px;
               color: #ccc;
               transition: all 0.2s;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
             ">
-              ${chat.title.substring(0, 45)}${chat.title.length > 45 ? '...' : ''}
+              <span style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${chat.title.substring(0, 40)}${chat.title.length > 40 ? '...' : ''}
+              </span>
+              <span class="add-to-tree-btn" data-chat-index="${index}" style="
+                color: #4a9eff;
+                font-size: 16px;
+                margin-left: 8px;
+                cursor: pointer;
+              " title="Add to current tree">+</span>
             </div>
           `).join('')}
-          ${untrackedChats.length > 10 ? `<div style="color: #666; font-size: 10px; padding: 4px;">...${untrackedChats.length - 10} more</div>` : ''}
+          ${untrackedChats.length > 15 ? `<div style="color: #666; font-size: 10px; padding: 4px;">...${untrackedChats.length - 15} more</div>` : ''}
+        </div>
+        <div style="color: #666; font-size: 10px; margin-top: 8px;">
+          Click chat to visit • Click + to add to tree
+        </div>
+      </div>
+    ` : '';
+
+    const emptyState = allTrees.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-state-icon">🌱</div>
+        <div class="empty-state-text">
+          <strong>Welcome to Arbor!</strong><br><br>
+          ${untrackedChats.length > 0 ?
+            `Click + on any chat below to start a tree` :
+            `Loading chats...`
+          }
         </div>
       </div>
     ` : '';
 
     return `
       <div class="arbor-header">
-        <h2 id="tree-title-editable" style="cursor: pointer; flex: 1;" title="Click to edit tree title">🌳 ${currentTree.title}</h2>
+        <h2>🌳 Arbor</h2>
         <button class="arbor-toggle-btn" id="toggle-sidebar">Hide</button>
       </div>
       <div class="arbor-content" id="tree-view" style="display: flex; flex-direction: column;">
-        <div style="flex-shrink: 0;">
-          ${treeHTML}
-        </div>
-        ${availableChatsSection}
+        ${emptyState}
+        ${allTreesHTML}
+        ${currentTreeHTML}
+        ${untrackedChatsHTML}
       </div>
       <div class="action-buttons">
-        <button class="btn btn-secondary" id="create-branch" title="Create a subtopic from current chat (copies context)">
+        <button class="btn" id="new-chat-btn" title="Create a new ChatGPT chat" style="background: #10b981;">
+          ✨ New Chat
+        </button>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-secondary" id="create-branch" title="Create a subtopic from current chat (copies context)" ${!this.state.currentTreeId ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
           🌿 Branch
         </button>
         <button class="btn btn-secondary" id="new-tree" title="Start a new tree for a different project">
@@ -1582,7 +1612,30 @@ class ArborExtensionProduction {
       this.editTreeTitle();
     });
 
-    // Available chat items click handlers
+    // Tree item click handlers (for switching trees)
+    document.querySelectorAll('.tree-item').forEach((item) => {
+      const treeId = (item as HTMLElement).dataset.treeId;
+
+      item.addEventListener('mouseenter', () => {
+        if (treeId !== this.state.currentTreeId) {
+          (item as HTMLElement).style.background = '#2a2a2a';
+        }
+      });
+
+      item.addEventListener('mouseleave', () => {
+        if (treeId !== this.state.currentTreeId) {
+          (item as HTMLElement).style.background = '#252525';
+        }
+      });
+
+      item.addEventListener('click', async () => {
+        if (treeId && treeId !== this.state.currentTreeId) {
+          await this.switchToTree(treeId);
+        }
+      });
+    });
+
+    // Untracked chat items
     const trackedUrls = new Set<string>();
     Object.values(this.state.trees).forEach(tree => {
       Object.values(tree.nodes).forEach(node => {
@@ -1592,7 +1645,9 @@ class ArborExtensionProduction {
 
     const untrackedChats = this.availableChats.filter(chat => !trackedUrls.has(chat.url));
 
-    document.querySelectorAll('.available-chat-item').forEach((item) => {
+    document.querySelectorAll('.untracked-chat-item').forEach((item) => {
+      const chatUrl = (item as HTMLElement).dataset.chatUrl;
+
       item.addEventListener('mouseenter', () => {
         (item as HTMLElement).style.background = '#2d3748';
         (item as HTMLElement).style.borderLeftColor = '#4a9eff';
@@ -1603,8 +1658,24 @@ class ArborExtensionProduction {
         (item as HTMLElement).style.borderLeftColor = '#666';
       });
 
-      item.addEventListener('click', async () => {
-        const index = parseInt((item as HTMLElement).dataset.chatIndex || '0');
+      item.addEventListener('click', (e) => {
+        // Check if click was on the add button
+        if ((e.target as HTMLElement).classList.contains('add-to-tree-btn')) {
+          return; // Let the add button handler deal with it
+        }
+
+        // Visit the chat
+        if (chatUrl) {
+          window.location.href = chatUrl;
+        }
+      });
+    });
+
+    // Add to tree buttons
+    document.querySelectorAll('.add-to-tree-btn').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent navigation
+        const index = parseInt((btn as HTMLElement).dataset.chatIndex || '0');
         const chat = untrackedChats[index];
         if (chat) {
           await this.addChatToTree(chat.id, chat.url, chat.title);
@@ -1612,18 +1683,16 @@ class ArborExtensionProduction {
       });
     });
 
-    // Browse chats button (works for both empty and populated states)
-    document.getElementById('browse-chats')?.addEventListener('click', () =>
-      this.showChatBrowser()
-    );
+    // New Chat button
+    document.getElementById('new-chat-btn')?.addEventListener('click', () => {
+      this.createNewChat();
+    });
 
-    document.getElementById('browse-chats-empty')?.addEventListener('click', () =>
-      this.showChatBrowser()
-    );
-
-    document.getElementById('create-branch')?.addEventListener('click', () =>
-      this.createBranch()
-    );
+    document.getElementById('create-branch')?.addEventListener('click', () => {
+      if (this.state.currentTreeId) {
+        this.createBranch();
+      }
+    });
 
     document.getElementById('new-tree')?.addEventListener('click', () => this.createNewTree());
 
@@ -2050,15 +2119,33 @@ class ArborExtensionProduction {
     this.showNotification(`"${title}" added to tree! 🌳`, 'success');
   }
 
+  private async switchToTree(treeId: string) {
+    this.state.currentTreeId = treeId;
+    this.state.currentNodeId = this.state.trees[treeId]?.rootNodeId || null;
+    await this.saveState();
+
+    this.showNotification(`Switched to tree: ${this.state.trees[treeId]?.title}`, 'success');
+    this.refresh();
+  }
+
+  private createNewChat() {
+    // Open ChatGPT home to create new chat
+    window.open('https://chatgpt.com/', '_blank');
+    this.showNotification('Opening new ChatGPT chat...', 'success');
+  }
+
   private async createNewTree() {
     const title = prompt('Enter a name for the new tree:');
     if (!title) return;
+
+    // Create an empty tree that will be populated when user adds first chat
+    const treeId = `tree-${Date.now()}`;
 
     this.state.currentTreeId = null;
     this.state.currentNodeId = null;
     await this.saveState();
 
-    this.showNotification('New tree created! Add chats using "Browse Chats" button.', 'success');
+    this.showNotification(`Tree "${title}" will be created when you add your first chat.`, 'success');
     this.refresh();
   }
 
