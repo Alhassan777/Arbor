@@ -1242,6 +1242,15 @@ class ArborExtensionProduction {
         min-width: 200px;
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       ">
+        <div class="context-menu-item" data-action="rename" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #fff;
+          border-bottom: 1px solid #333;
+          font-size: 14px;
+        ">
+          ✏️ Rename
+        </div>
         <div class="context-menu-item" data-action="color" style="
           padding: 10px 16px;
           cursor: pointer;
@@ -1305,6 +1314,9 @@ class ArborExtensionProduction {
         menu.remove();
 
         switch (action) {
+          case 'rename':
+            await this.renameNode(nodeId);
+            break;
           case 'color':
             await this.changeNodeColor(nodeId);
             break;
@@ -1553,6 +1565,50 @@ class ArborExtensionProduction {
       };
       document.addEventListener('click', closeOnOutside);
     }, 0);
+  }
+
+  private async renameNode(nodeId: string) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (!node) {
+      this.showNotification('Node not found', 'error');
+      return;
+    }
+
+    const newTitle = prompt(
+      `Rename chat:\n\nCurrent title: ${node.title}\n\nEnter new title:`,
+      node.title
+    );
+
+    if (!newTitle || newTitle.trim() === '' || newTitle === node.title) return;
+
+    const oldTitle = node.title;
+    node.title = newTitle.trim();
+
+    // Update in database
+    await db.saveTree(tree);
+    await db.saveNode(node, this.state.currentTreeId);
+
+    // Refresh UI
+    this.renderGraph();
+    this.refresh();
+    this.showNotification('Chat renamed! ✏️', 'success');
+
+    // Try to rename in ChatGPT as well
+    try {
+      const renamed = await this.currentPlatform.renameChat(node.url, newTitle.trim());
+      if (renamed) {
+        this.showNotification('Renamed in ChatGPT too! 🎉', 'success');
+      } else {
+        this.showNotification('Renamed in Arbor (ChatGPT rename not available)', 'success');
+      }
+    } catch (error) {
+      console.warn('Could not rename in ChatGPT:', error);
+      // Already renamed in Arbor, so this is just a bonus
+    }
   }
 
   private async editConnectionLabel(nodeId: string) {

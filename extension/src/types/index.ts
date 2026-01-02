@@ -78,4 +78,5 @@ export interface Platform {
   onNavigationChange(callback: (chatId: string | null) => void): void;
   extractMessages(): Array<{ role: 'user' | 'assistant'; content: string }>;
   getRecentMessages(count?: number): Array<{ role: 'user' | 'assistant'; content: string }>;
+  renameChat(chatUrl: string, newTitle: string): Promise<boolean>;
 }
