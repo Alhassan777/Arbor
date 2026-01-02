@@ -8,6 +8,12 @@ class ArborExtensionProduction {
   private sidebarInjected = false;
   private currentPlatform = chatgptPlatform;
   private currentChatId: string | null = null;
+  private canvasZoom = 1;
+  private canvasPanX = 0;
+  private canvasPanY = 0;
+  private isPanning = false;
+  private panStartX = 0;
+  private panStartY = 0;
 
   constructor() {
     this.state = {
@@ -617,7 +623,7 @@ class ArborExtensionProduction {
 
     return `
       <div class="arbor-header">
-        <h2>🌳 ${currentTree.title}</h2>
+        <h2 id="tree-title-editable" style="cursor: pointer; flex: 1;" title="Click to edit tree title">🌳 ${currentTree.title}</h2>
         <button class="arbor-toggle-btn" id="toggle-sidebar">Hide</button>
       </div>
       <div class="arbor-content" id="tree-view">
@@ -675,26 +681,37 @@ class ArborExtensionProduction {
     return `
       <div class="arbor-header">
         <h2>📊 Graph View</h2>
-        <button class="arbor-toggle-btn" id="toggle-graph">Hide</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="arbor-toggle-btn" id="zoom-out" title="Zoom Out">−</button>
+          <span id="zoom-level" style="font-size: 12px; color: #999; min-width: 40px;">100%</span>
+          <button class="arbor-toggle-btn" id="zoom-in" title="Zoom In">+</button>
+          <button class="arbor-toggle-btn" id="reset-zoom" title="Reset View">⟲</button>
+          <button class="arbor-toggle-btn" id="toggle-graph">Hide</button>
+        </div>
       </div>
       <div class="arbor-content">
-        <div class="graph-canvas" id="graph-canvas"></div>
+        <div class="graph-canvas" id="graph-canvas">
+          <div id="graph-content" style="transform-origin: 0 0; transition: transform 0.1s;"></div>
+        </div>
       </div>
     `;
   }
 
   private renderGraph() {
-    const canvas = document.getElementById('graph-canvas');
-    if (!canvas || !this.state.currentTreeId) return;
+    const container = document.getElementById('graph-content');
+    if (!container || !this.state.currentTreeId) return;
 
     const tree = this.state.trees[this.state.currentTreeId];
     if (!tree) return;
 
-    canvas.innerHTML = '';
+    container.innerHTML = '';
 
     const positions = this.calculateNodePositions(tree);
-    this.renderConnections(tree, positions, canvas);
-    this.renderGraphNodes(tree, positions, canvas);
+    this.renderConnections(tree, positions, container);
+    this.renderGraphNodes(tree, positions, container);
+
+    // Apply current zoom and pan
+    this.updateCanvasTransform();
   }
 
   private calculateNodePositions(tree: ChatTree): Record<string, { x: number; y: number }> {
@@ -749,6 +766,33 @@ class ArborExtensionProduction {
         line.style.transform = `rotate(${angle}deg)`;
 
         canvas.appendChild(line);
+
+        // Add connection label if exists
+        if (node.connectionLabel) {
+          const label = document.createElement('div');
+          label.className = 'connection-label';
+
+          // Calculate midpoint
+          const midX = (parent.x + child.x) / 2 + 60;
+          const midY = (parent.y + child.y) / 2 + 20;
+
+          label.style.position = 'absolute';
+          label.style.left = `${midX}px`;
+          label.style.top = `${midY}px`;
+          label.style.transform = 'translate(-50%, -50%)';
+          label.style.background = '#1a1a1a';
+          label.style.border = '1px solid #4a9eff';
+          label.style.borderRadius = '4px';
+          label.style.padding = '2px 6px';
+          label.style.fontSize = '10px';
+          label.style.color = '#4a9eff';
+          label.style.whiteSpace = 'nowrap';
+          label.style.pointerEvents = 'none';
+          label.style.zIndex = '10';
+          label.textContent = node.connectionLabel;
+
+          canvas.appendChild(label);
+        }
       }
     });
   }
@@ -808,7 +852,6 @@ class ArborExtensionProduction {
       nodeEl.innerHTML = `
         <div class="graph-node-title">${node.title}</div>
         <div class="graph-node-platform">${platformEmoji} ${node.platform}</div>
-        ${node.connectionLabel ? `<div class="graph-node-label" style="font-size: 10px; color: #999; margin-top: 4px;">${node.connectionLabel}</div>` : ''}
       `;
 
       // Make node draggable
@@ -837,6 +880,7 @@ class ArborExtensionProduction {
     let startY = 0;
     let initialX = 0;
     let initialY = 0;
+    let dropTarget: HTMLElement | null = null;
 
     nodeEl.addEventListener('mousedown', (e) => {
       // Only drag if clicking on the node itself, not buttons/links
@@ -873,6 +917,38 @@ class ArborExtensionProduction {
 
       nodeEl.style.left = `${newX}px`;
       nodeEl.style.top = `${newY}px`;
+
+      // Check for drop target (reparenting)
+      const allNodes = document.querySelectorAll('.graph-node');
+      let foundTarget = false;
+
+      allNodes.forEach(otherNode => {
+        if (otherNode === nodeEl) return;
+
+        const rect = otherNode.getBoundingClientRect();
+        const nodeRect = nodeEl.getBoundingClientRect();
+
+        // Check if dragged node overlaps with other node
+        const isOverlapping = !(
+          nodeRect.right < rect.left ||
+          nodeRect.left > rect.right ||
+          nodeRect.bottom < rect.top ||
+          nodeRect.top > rect.bottom
+        );
+
+        if (isOverlapping) {
+          dropTarget = otherNode as HTMLElement;
+          (otherNode as HTMLElement).style.boxShadow = '0 0 20px #10b981';
+          foundTarget = true;
+        } else if (dropTarget === otherNode) {
+          (otherNode as HTMLElement).style.boxShadow = '';
+        }
+      });
+
+      if (!foundTarget && dropTarget) {
+        dropTarget.style.boxShadow = '';
+        dropTarget = null;
+      }
     });
 
     document.addEventListener('mouseup', async () => {
@@ -882,15 +958,85 @@ class ArborExtensionProduction {
       nodeEl.style.cursor = 'pointer';
       nodeEl.style.zIndex = 'auto';
 
-      // Save new position
-      const newX = parseInt(nodeEl.style.left);
-      const newY = parseInt(nodeEl.style.top);
+      // Check if we're reparenting
+      if (dropTarget) {
+        const newParentId = dropTarget.dataset.nodeId;
+        dropTarget.style.boxShadow = '';
 
-      await this.updateNodePosition(nodeId, { x: newX, y: newY });
+        if (newParentId && newParentId !== nodeId) {
+          await this.reparentNode(nodeId, newParentId);
+        }
+
+        dropTarget = null;
+      } else {
+        // Just save new position
+        const newX = parseInt(nodeEl.style.left);
+        const newY = parseInt(nodeEl.style.top);
+
+        await this.updateNodePosition(nodeId, { x: newX, y: newY });
+      }
 
       // Redraw connections
       this.renderGraph();
     });
+  }
+
+  private async reparentNode(nodeId: string, newParentId: string) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+    const newParent = tree.nodes[newParentId];
+
+    if (!node || !newParent) return;
+
+    // Prevent circular dependencies
+    if (this.wouldCreateCycle(nodeId, newParentId, tree)) {
+      this.showNotification('Cannot create circular dependency!', 'error');
+      return;
+    }
+
+    // Prevent making node its own parent or root
+    if (nodeId === newParentId || nodeId === tree.rootNodeId) {
+      this.showNotification('Invalid reparenting operation!', 'error');
+      return;
+    }
+
+    // Remove from old parent
+    if (node.parentId) {
+      const oldParent = tree.nodes[node.parentId];
+      if (oldParent) {
+        oldParent.children = oldParent.children.filter(id => id !== nodeId);
+        await db.saveNode(oldParent, this.state.currentTreeId);
+      }
+    }
+
+    // Add to new parent
+    node.parentId = newParentId;
+    if (!newParent.children.includes(nodeId)) {
+      newParent.children.push(nodeId);
+    }
+
+    await db.saveTree(tree);
+    await db.saveNode(node, this.state.currentTreeId);
+    await db.saveNode(newParent, this.state.currentTreeId);
+
+    this.showNotification('Node reparented successfully! 🔄', 'success');
+    this.refresh();
+  }
+
+  private wouldCreateCycle(nodeId: string, newParentId: string, tree: ChatTree): boolean {
+    // Check if newParentId is a descendant of nodeId
+    const isDescendant = (potentialDescendant: string, ancestor: string): boolean => {
+      if (potentialDescendant === ancestor) return true;
+
+      const node = tree.nodes[potentialDescendant];
+      if (!node || !node.parentId) return false;
+
+      return isDescendant(node.parentId, ancestor);
+    };
+
+    return isDescendant(newParentId, nodeId);
   }
 
   private async updateNodePosition(nodeId: string, position: { x: number; y: number }) {
@@ -1022,46 +1168,221 @@ class ArborExtensionProduction {
   }
 
   private async changeNodeColor(nodeId: string) {
-    const color = prompt('Enter a color (hex code like #4a9eff or color name):', '#4a9eff');
-    if (!color) return;
-
-    if (!this.state.currentTreeId) return;
-
-    const tree = this.state.trees[this.state.currentTreeId];
-    const node = tree.nodes[nodeId];
-
-    if (node) {
-      node.color = color;
-      await db.saveTree(tree);
-      await db.saveNode(node, this.state.currentTreeId);
-      this.renderGraph();
-      this.showNotification('Color updated! 🎨', 'success');
-    }
+    this.showCustomizationPanel(nodeId);
   }
 
   private async changeNodeShape(nodeId: string) {
-    const shapes = ['rounded', 'rectangle', 'circle', 'diamond'];
-    const shape = prompt(
-      `Choose shape:\n1 = rounded (default)\n2 = rectangle\n3 = circle\n4 = diamond\n\nEnter number (1-4):`,
-      '1'
-    );
+    this.showCustomizationPanel(nodeId);
+  }
 
-    if (!shape || !['1', '2', '3', '4'].includes(shape)) return;
-
-    const selectedShape = shapes[parseInt(shape) - 1] as ChatNode['shape'];
-
+  private showCustomizationPanel(nodeId: string) {
     if (!this.state.currentTreeId) return;
 
     const tree = this.state.trees[this.state.currentTreeId];
     const node = tree.nodes[nodeId];
+    if (!node) return;
 
-    if (node) {
+    // Remove existing panel if any
+    document.getElementById('arbor-customization-panel')?.remove();
+
+    const currentColor = node.color || '#4a9eff';
+    const currentShape = node.shape || 'rounded';
+
+    const panel = document.createElement('div');
+    panel.id = 'arbor-customization-panel';
+    panel.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+        z-index: 99999999;
+        width: 350px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">
+        <div style="padding: 20px; border-bottom: 1px solid #333;">
+          <h3 style="color: #fff; margin: 0; font-size: 18px;">🎨 Customize Node</h3>
+          <p style="color: #999; margin: 8px 0 0 0; font-size: 13px;">${node.title}</p>
+        </div>
+
+        <div style="padding: 20px;">
+          <div style="margin-bottom: 20px;">
+            <label style="color: #fff; font-size: 14px; display: block; margin-bottom: 8px;">
+              Color
+            </label>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <input type="color" id="node-color-picker" value="${currentColor}" style="
+                width: 60px;
+                height: 40px;
+                border: 2px solid #333;
+                border-radius: 6px;
+                cursor: pointer;
+                background: transparent;
+              ">
+              <input type="text" id="node-color-text" value="${currentColor}" style="
+                flex: 1;
+                padding: 8px 12px;
+                background: #252525;
+                border: 1px solid #333;
+                border-radius: 6px;
+                color: #fff;
+                font-size: 14px;
+              ">
+            </div>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="color: #fff; font-size: 14px; display: block; margin-bottom: 8px;">
+              Shape
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button class="shape-btn" data-shape="rounded" style="
+                padding: 12px;
+                background: ${currentShape === 'rounded' ? '#4a9eff' : '#252525'};
+                border: 1px solid #333;
+                border-radius: 8px;
+                color: #fff;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+              ">
+                ▭ Rounded
+              </button>
+              <button class="shape-btn" data-shape="rectangle" style="
+                padding: 12px;
+                background: ${currentShape === 'rectangle' ? '#4a9eff' : '#252525'};
+                border: 1px solid #333;
+                border-radius: 0px;
+                color: #fff;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+              ">
+                ▢ Rectangle
+              </button>
+              <button class="shape-btn" data-shape="circle" style="
+                padding: 12px;
+                background: ${currentShape === 'circle' ? '#4a9eff' : '#252525'};
+                border: 1px solid #333;
+                border-radius: 50%;
+                color: #fff;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+              ">
+                ● Circle
+              </button>
+              <button class="shape-btn" data-shape="diamond" style="
+                padding: 12px;
+                background: ${currentShape === 'diamond' ? '#4a9eff' : '#252525'};
+                border: 1px solid #333;
+                border-radius: 4px;
+                color: #fff;
+                cursor: pointer;
+                font-size: 13px;
+                transition: all 0.2s;
+                transform: rotate(45deg);
+              ">
+                <span style="display: inline-block; transform: rotate(-45deg);">◆ Diamond</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div style="padding: 16px 20px; border-top: 1px solid #333; display: flex; gap: 8px;">
+          <button id="apply-customization" style="
+            flex: 1;
+            padding: 10px;
+            background: #10b981;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+          ">
+            Apply
+          </button>
+          <button id="cancel-customization" style="
+            flex: 1;
+            padding: 10px;
+            background: #333;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+          ">
+            Cancel
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    // Sync color picker and text input
+    const colorPicker = document.getElementById('node-color-picker') as HTMLInputElement;
+    const colorText = document.getElementById('node-color-text') as HTMLInputElement;
+
+    colorPicker?.addEventListener('input', () => {
+      if (colorText) colorText.value = colorPicker.value;
+    });
+
+    colorText?.addEventListener('input', () => {
+      if (colorPicker && /^#[0-9A-Fa-f]{6}$/.test(colorText.value)) {
+        colorPicker.value = colorText.value;
+      }
+    });
+
+    // Shape button selection
+    let selectedShape = currentShape;
+    panel.querySelectorAll('.shape-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedShape = (btn as HTMLElement).dataset.shape as ChatNode['shape'] || 'rounded';
+
+        // Update button styles
+        panel.querySelectorAll('.shape-btn').forEach(b => {
+          (b as HTMLElement).style.background = '#252525';
+        });
+        (btn as HTMLElement).style.background = '#4a9eff';
+      });
+    });
+
+    // Apply button
+    document.getElementById('apply-customization')?.addEventListener('click', async () => {
+      const newColor = colorText?.value || currentColor;
+
+      node.color = newColor;
       node.shape = selectedShape;
+
       await db.saveTree(tree);
-      await db.saveNode(node, this.state.currentTreeId);
+      await db.saveNode(node, this.state.currentTreeId!);
       this.renderGraph();
-      this.showNotification(`Shape changed to ${selectedShape}! 🔷`, 'success');
-    }
+      this.showNotification('Node customized! 🎨', 'success');
+
+      panel.remove();
+    });
+
+    // Cancel button
+    document.getElementById('cancel-customization')?.addEventListener('click', () => {
+      panel.remove();
+    });
+
+    // Close on outside click
+    setTimeout(() => {
+      const closeOnOutside = (e: MouseEvent) => {
+        if (!(e.target as HTMLElement).closest('#arbor-customization-panel > div')) {
+          panel.remove();
+          document.removeEventListener('click', closeOnOutside);
+        }
+      };
+      document.addEventListener('click', closeOnOutside);
+    }, 0);
   }
 
   private async editConnectionLabel(nodeId: string) {
@@ -1177,6 +1498,11 @@ class ArborExtensionProduction {
       }
     });
 
+    // Tree title editing
+    document.getElementById('tree-title-editable')?.addEventListener('click', () => {
+      this.editTreeTitle();
+    });
+
     // Browse chats button (works for both empty and populated states)
     document.getElementById('browse-chats')?.addEventListener('click', () =>
       this.showChatBrowser()
@@ -1206,6 +1532,20 @@ class ArborExtensionProduction {
     });
   }
 
+  private async editTreeTitle() {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const newTitle = prompt('Enter new tree title:', tree.title);
+
+    if (newTitle && newTitle.trim().length > 0) {
+      tree.title = newTitle.trim();
+      await db.saveTree(tree);
+      this.showNotification('Tree title updated! 📝', 'success');
+      this.refresh();
+    }
+  }
+
   private attachGraphListeners() {
     document.getElementById('toggle-graph')?.addEventListener('click', () => {
       const graph = document.getElementById('arbor-graph-container');
@@ -1224,6 +1564,82 @@ class ArborExtensionProduction {
         this.adjustMainContent();
       }
     });
+
+    // Zoom controls
+    document.getElementById('zoom-in')?.addEventListener('click', () => {
+      this.canvasZoom = Math.min(this.canvasZoom + 0.2, 3);
+      this.updateCanvasTransform();
+    });
+
+    document.getElementById('zoom-out')?.addEventListener('click', () => {
+      this.canvasZoom = Math.max(this.canvasZoom - 0.2, 0.3);
+      this.updateCanvasTransform();
+    });
+
+    document.getElementById('reset-zoom')?.addEventListener('click', () => {
+      this.canvasZoom = 1;
+      this.canvasPanX = 0;
+      this.canvasPanY = 0;
+      this.updateCanvasTransform();
+    });
+
+    // Canvas panning
+    const canvas = document.getElementById('graph-canvas');
+    if (canvas) {
+      // Wheel zoom
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        this.canvasZoom = Math.max(0.3, Math.min(3, this.canvasZoom + delta));
+        this.updateCanvasTransform();
+      });
+
+      // Pan with mouse drag
+      canvas.addEventListener('mousedown', (e) => {
+        // Only pan if clicking on the canvas background, not on a node
+        if ((e.target as HTMLElement).id === 'graph-canvas' ||
+            (e.target as HTMLElement).id === 'graph-content') {
+          this.isPanning = true;
+          this.panStartX = e.clientX - this.canvasPanX;
+          this.panStartY = e.clientY - this.canvasPanY;
+          canvas.style.cursor = 'grabbing';
+        }
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!this.isPanning) return;
+        this.canvasPanX = e.clientX - this.panStartX;
+        this.canvasPanY = e.clientY - this.panStartY;
+        this.updateCanvasTransform();
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        if (this.isPanning) {
+          this.isPanning = false;
+          canvas.style.cursor = 'default';
+        }
+      });
+
+      canvas.addEventListener('mouseleave', () => {
+        if (this.isPanning) {
+          this.isPanning = false;
+          canvas.style.cursor = 'default';
+        }
+      });
+    }
+  }
+
+  private updateCanvasTransform() {
+    const container = document.getElementById('graph-content');
+    const zoomLevel = document.getElementById('zoom-level');
+
+    if (container) {
+      container.style.transform = `translate(${this.canvasPanX}px, ${this.canvasPanY}px) scale(${this.canvasZoom})`;
+    }
+
+    if (zoomLevel) {
+      zoomLevel.textContent = `${Math.round(this.canvasZoom * 100)}%`;
+    }
   }
 
   private adjustMainContent() {
