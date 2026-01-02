@@ -1,5 +1,5 @@
 // Production-ready content script with real chat tracking
-import { ChatNode, ChatTree, ExtensionState } from '../types';
+import { ChatNode, ChatTree, ExtensionState, ConnectionType } from '../types';
 import { db } from '../storage/indexeddb';
 import { chatgptPlatform } from '../platforms/chatgpt';
 
@@ -702,18 +702,23 @@ class ArborExtensionProduction {
     const levelCounts: Record<number, number> = {};
 
     const traverse = (nodeId: string, level: number) => {
-      if (!levelCounts[level]) levelCounts[level] = 0;
-
-      const x = 40 + level * 180;
-      const y = 40 + levelCounts[level] * 100;
-
-      positions[nodeId] = { x, y };
-      levelCounts[level]++;
-
       const node = tree.nodes[nodeId];
-      if (node) {
-        node.children.forEach((childId) => traverse(childId, level + 1));
+      if (!node) return;
+
+      // Use custom position if available, otherwise auto-layout
+      if (node.customPosition) {
+        positions[nodeId] = node.customPosition;
+      } else {
+        if (!levelCounts[level]) levelCounts[level] = 0;
+
+        const x = 40 + level * 180;
+        const y = 40 + levelCounts[level] * 100;
+
+        positions[nodeId] = { x, y };
+        levelCounts[level]++;
       }
+
+      node.children.forEach((childId) => traverse(childId, level + 1));
     };
 
     traverse(tree.rootNodeId, 0);
@@ -760,8 +765,39 @@ class ArborExtensionProduction {
       const isActive = this.state.currentNodeId === nodeId;
       const nodeEl = document.createElement('div');
       nodeEl.className = `graph-node ${isActive ? 'active' : ''}`;
+      nodeEl.dataset.nodeId = nodeId;
       nodeEl.style.left = `${pos.x}px`;
       nodeEl.style.top = `${pos.y}px`;
+
+      // Apply custom color if set
+      if (node.color) {
+        nodeEl.style.borderColor = node.color;
+      }
+
+      // Apply custom shape if set
+      if (node.shape) {
+        switch (node.shape) {
+          case 'circle':
+            nodeEl.style.borderRadius = '50%';
+            nodeEl.style.minWidth = '80px';
+            nodeEl.style.minHeight = '80px';
+            nodeEl.style.display = 'flex';
+            nodeEl.style.flexDirection = 'column';
+            nodeEl.style.alignItems = 'center';
+            nodeEl.style.justifyContent = 'center';
+            break;
+          case 'rounded':
+            nodeEl.style.borderRadius = '12px';
+            break;
+          case 'rectangle':
+            nodeEl.style.borderRadius = '0px';
+            break;
+          case 'diamond':
+            nodeEl.style.transform = 'rotate(45deg)';
+            nodeEl.style.padding = '20px';
+            break;
+        }
+      }
 
       const platformEmoji = {
         chatgpt: '🤖',
@@ -772,15 +808,354 @@ class ArborExtensionProduction {
       nodeEl.innerHTML = `
         <div class="graph-node-title">${node.title}</div>
         <div class="graph-node-platform">${platformEmoji} ${node.platform}</div>
+        ${node.connectionLabel ? `<div class="graph-node-label" style="font-size: 10px; color: #999; margin-top: 4px;">${node.connectionLabel}</div>` : ''}
       `;
 
-      nodeEl.addEventListener('click', () => {
-        // Navigate to chat
-        window.location.href = node.url;
+      // Make node draggable
+      this.makeNodeDraggable(nodeEl, nodeId);
+
+      // Left click - navigate
+      nodeEl.addEventListener('click', (e) => {
+        if (!(e.target as HTMLElement).closest('.graph-node-title')) {
+          window.location.href = node.url;
+        }
+      });
+
+      // Right click - show context menu
+      nodeEl.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        this.showNodeContextMenu(nodeId, e.clientX, e.clientY);
       });
 
       canvas.appendChild(nodeEl);
     });
+  }
+
+  private makeNodeDraggable(nodeEl: HTMLElement, nodeId: string) {
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialX = 0;
+    let initialY = 0;
+
+    nodeEl.addEventListener('mousedown', (e) => {
+      // Only drag if clicking on the node itself, not buttons/links
+      if ((e.target as HTMLElement).tagName === 'BUTTON' ||
+          (e.target as HTMLElement).tagName === 'A') {
+        return;
+      }
+
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = nodeEl.getBoundingClientRect();
+      const canvas = document.getElementById('graph-canvas');
+      if (canvas) {
+        const canvasRect = canvas.getBoundingClientRect();
+        initialX = rect.left - canvasRect.left + canvas.scrollLeft;
+        initialY = rect.top - canvasRect.top + canvas.scrollTop;
+      }
+
+      nodeEl.style.cursor = 'grabbing';
+      nodeEl.style.zIndex = '1000';
+      e.stopPropagation();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      const newX = initialX + dx;
+      const newY = initialY + dy;
+
+      nodeEl.style.left = `${newX}px`;
+      nodeEl.style.top = `${newY}px`;
+    });
+
+    document.addEventListener('mouseup', async () => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      nodeEl.style.cursor = 'pointer';
+      nodeEl.style.zIndex = 'auto';
+
+      // Save new position
+      const newX = parseInt(nodeEl.style.left);
+      const newY = parseInt(nodeEl.style.top);
+
+      await this.updateNodePosition(nodeId, { x: newX, y: newY });
+
+      // Redraw connections
+      this.renderGraph();
+    });
+  }
+
+  private async updateNodePosition(nodeId: string, position: { x: number; y: number }) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (node) {
+      node.customPosition = position;
+      await db.saveTree(tree);
+      await db.saveNode(node, this.state.currentTreeId);
+      console.log('✅ Node position saved:', nodeId, position);
+    }
+  }
+
+  private showNodeContextMenu(nodeId: string, x: number, y: number) {
+    // Remove existing menu if any
+    document.getElementById('arbor-context-menu')?.remove();
+
+    const menu = document.createElement('div');
+    menu.id = 'arbor-context-menu';
+    menu.innerHTML = `
+      <div style="
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        z-index: 99999999;
+        min-width: 200px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">
+        <div class="context-menu-item" data-action="color" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #fff;
+          border-bottom: 1px solid #333;
+          font-size: 14px;
+        ">
+          🎨 Change Color
+        </div>
+        <div class="context-menu-item" data-action="shape" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #fff;
+          border-bottom: 1px solid #333;
+          font-size: 14px;
+        ">
+          🔷 Change Shape
+        </div>
+        <div class="context-menu-item" data-action="label" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #fff;
+          border-bottom: 1px solid #333;
+          font-size: 14px;
+        ">
+          🏷️ Edit Connection Label
+        </div>
+        <div class="context-menu-item" data-action="reset" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #fff;
+          border-bottom: 1px solid #333;
+          font-size: 14px;
+        ">
+          📍 Reset Position
+        </div>
+        <div class="context-menu-item" data-action="delete" style="
+          padding: 10px 16px;
+          cursor: pointer;
+          color: #ef4444;
+          font-size: 14px;
+        ">
+          ❌ Delete Node
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(menu);
+
+    // Add hover effects
+    menu.querySelectorAll('.context-menu-item').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        (item as HTMLElement).style.background = '#252525';
+      });
+      item.addEventListener('mouseleave', () => {
+        (item as HTMLElement).style.background = 'transparent';
+      });
+
+      item.addEventListener('click', async () => {
+        const action = (item as HTMLElement).dataset.action;
+        menu.remove();
+
+        switch (action) {
+          case 'color':
+            await this.changeNodeColor(nodeId);
+            break;
+          case 'shape':
+            await this.changeNodeShape(nodeId);
+            break;
+          case 'label':
+            await this.editConnectionLabel(nodeId);
+            break;
+          case 'reset':
+            await this.resetNodePosition(nodeId);
+            break;
+          case 'delete':
+            await this.deleteNode(nodeId);
+            break;
+        }
+      });
+    });
+
+    // Close menu when clicking outside
+    const closeMenu = (e: MouseEvent) => {
+      if (!menu.contains(e.target as Node)) {
+        menu.remove();
+        document.removeEventListener('click', closeMenu);
+      }
+    };
+
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu);
+    }, 0);
+  }
+
+  private async changeNodeColor(nodeId: string) {
+    const color = prompt('Enter a color (hex code like #4a9eff or color name):', '#4a9eff');
+    if (!color) return;
+
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (node) {
+      node.color = color;
+      await db.saveTree(tree);
+      await db.saveNode(node, this.state.currentTreeId);
+      this.renderGraph();
+      this.showNotification('Color updated! 🎨', 'success');
+    }
+  }
+
+  private async changeNodeShape(nodeId: string) {
+    const shapes = ['rounded', 'rectangle', 'circle', 'diamond'];
+    const shape = prompt(
+      `Choose shape:\n1 = rounded (default)\n2 = rectangle\n3 = circle\n4 = diamond\n\nEnter number (1-4):`,
+      '1'
+    );
+
+    if (!shape || !['1', '2', '3', '4'].includes(shape)) return;
+
+    const selectedShape = shapes[parseInt(shape) - 1] as ChatNode['shape'];
+
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (node) {
+      node.shape = selectedShape;
+      await db.saveTree(tree);
+      await db.saveNode(node, this.state.currentTreeId);
+      this.renderGraph();
+      this.showNotification(`Shape changed to ${selectedShape}! 🔷`, 'success');
+    }
+  }
+
+  private async editConnectionLabel(nodeId: string) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (!node || !node.parentId) {
+      this.showNotification('Root nodes have no connection label', 'error');
+      return;
+    }
+
+    const currentLabel = node.connectionLabel || 'none';
+    const label = prompt(
+      `Connection labels:\ndeepens, explores, contrasts, examples, applies, questions, extends, summarizes, custom\n\nCurrent: ${currentLabel}\n\nEnter new label:`,
+      currentLabel
+    );
+
+    if (!label) return;
+
+    node.connectionLabel = label as ConnectionType;
+    await db.saveTree(tree);
+    await db.saveNode(node, this.state.currentTreeId);
+    this.renderGraph();
+    this.refresh();
+    this.showNotification('Connection label updated! 🏷️', 'success');
+  }
+
+  private async resetNodePosition(nodeId: string) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (node) {
+      delete node.customPosition;
+      await db.saveTree(tree);
+      await db.saveNode(node, this.state.currentTreeId);
+      this.renderGraph();
+      this.showNotification('Position reset to auto-layout! 📍', 'success');
+    }
+  }
+
+  private async deleteNode(nodeId: string) {
+    if (!this.state.currentTreeId) return;
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree.nodes[nodeId];
+
+    if (!node) return;
+
+    if (nodeId === tree.rootNodeId) {
+      this.showNotification('Cannot delete root node!', 'error');
+      return;
+    }
+
+    const confirm = window.confirm(`Delete "${node.title}" and all its children?`);
+    if (!confirm) return;
+
+    // Remove from parent's children array
+    if (node.parentId) {
+      const parent = tree.nodes[node.parentId];
+      if (parent) {
+        parent.children = parent.children.filter(id => id !== nodeId);
+        await db.saveNode(parent, this.state.currentTreeId);
+      }
+    }
+
+    // Recursively delete node and children
+    const deleteRecursive = async (id: string) => {
+      const n = tree.nodes[id];
+      if (!n) return;
+
+      for (const childId of n.children) {
+        await deleteRecursive(childId);
+      }
+
+      delete tree.nodes[id];
+      await db.deleteNode(id);
+    };
+
+    await deleteRecursive(nodeId);
+    await db.saveTree(tree);
+
+    // Update current node if deleted
+    if (this.state.currentNodeId === nodeId) {
+      this.state.currentNodeId = tree.rootNodeId;
+      await this.saveState();
+    }
+
+    this.renderGraph();
+    this.refresh();
+    this.showNotification('Node deleted! ❌', 'success');
   }
 
   private attachSidebarListeners() {
