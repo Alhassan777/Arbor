@@ -14,6 +14,7 @@ class ArborExtensionProduction {
   private isPanning = false;
   private panStartX = 0;
   private panStartY = 0;
+  private availableChats: Array<{ id: string; title: string; url: string }> = [];
 
   constructor() {
     this.state = {
@@ -70,6 +71,9 @@ class ArborExtensionProduction {
     // Inject UI
     this.injectUI();
 
+    // Auto-scan available chats
+    this.scanAvailableChats();
+
     // Detect current chat
     this.detectAndTrackCurrentChat();
 
@@ -78,7 +82,20 @@ class ArborExtensionProduction {
       console.log('🔄 Navigation detected:', chatId);
       this.currentChatId = chatId;
       this.detectAndTrackCurrentChat();
+      // Rescan chats on navigation
+      this.scanAvailableChats();
     });
+  }
+
+  private scanAvailableChats() {
+    // Get all chats from ChatGPT sidebar
+    this.availableChats = this.currentPlatform.getAllChatsFromSidebar();
+    console.log(`📚 Found ${this.availableChats.length} available chats`);
+
+    // Refresh UI to show available chats
+    if (this.sidebarInjected) {
+      this.refresh();
+    }
   }
 
   private async detectAndTrackCurrentChat() {
@@ -586,7 +603,46 @@ class ArborExtensionProduction {
       ? this.state.trees[this.state.currentTreeId]
       : null;
 
+    // Get untracked chats (available but not in any tree)
+    const trackedUrls = new Set<string>();
+    Object.values(this.state.trees).forEach(tree => {
+      Object.values(tree.nodes).forEach(node => {
+        trackedUrls.add(node.url);
+      });
+    });
+
+    const untrackedChats = this.availableChats.filter(chat => !trackedUrls.has(chat.url));
+
     if (!currentTree) {
+      const availableChatsHTML = untrackedChats.length > 0 ? `
+        <div style="padding: 12px; border-top: 1px solid #333;">
+          <div style="color: #999; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
+            📚 Available Chats (${untrackedChats.length})
+          </div>
+          <div style="max-height: 300px; overflow-y: auto;">
+            ${untrackedChats.slice(0, 20).map((chat, index) => `
+              <div class="available-chat-item" data-chat-index="${index}" style="
+                background: #252525;
+                padding: 8px 10px;
+                margin-bottom: 6px;
+                border-radius: 4px;
+                cursor: pointer;
+                border-left: 2px solid #666;
+                font-size: 12px;
+                color: #ccc;
+                transition: all 0.2s;
+              ">
+                ${chat.title.substring(0, 50)}${chat.title.length > 50 ? '...' : ''}
+              </div>
+            `).join('')}
+            ${untrackedChats.length > 20 ? `<div style="color: #666; font-size: 11px; padding: 8px;">...and ${untrackedChats.length - 20} more</div>` : ''}
+          </div>
+          <div style="color: #666; font-size: 10px; margin-top: 8px;">
+            Click any chat to create a tree from it
+          </div>
+        </div>
+      ` : '';
+
       return `
         <div class="arbor-header">
           <h2>🌳 Arbor Trees</h2>
@@ -597,42 +653,61 @@ class ArborExtensionProduction {
             <div class="empty-state-icon">🌱</div>
             <div class="empty-state-text">
               <strong>Welcome to Arbor!</strong><br><br>
-
-              <strong>📚 To add existing chats:</strong><br>
-              Click "Browse Chats" button below<br><br>
-
-              <strong>🆕 Or visit any ChatGPT chat</strong><br>
-              and click "Yes" when prompted
+              ${untrackedChats.length > 0 ?
+                `<strong>Click any chat below to start a tree</strong>` :
+                `<strong>Visit a ChatGPT chat to get started</strong>`
+              }
             </div>
           </div>
+          ${availableChatsHTML}
         </div>
         <div class="action-buttons">
-          <button class="btn" id="browse-chats-empty" title="Add existing ChatGPT conversations">
-            📚 Browse Chats
+          <button class="btn btn-secondary" id="new-tree" title="Start a new tree for a different project">
+            🌳 New Tree
           </button>
-        </div>
-        <div style="padding: 12px; border-top: 1px solid #333; font-size: 11px; color: #666;">
-          <strong style="color: #999;">Quick Tips:</strong><br>
-          • <strong>Branch:</strong> Create subtopic from current chat<br>
-          • <strong>New Tree:</strong> Start fresh tree for new project
         </div>
       `;
     }
 
     const treeHTML = this.renderTreeNode(currentTree.rootNodeId, currentTree);
 
+    // Show available chats in current tree view too
+    const availableChatsSection = untrackedChats.length > 0 ? `
+      <div style="padding: 12px; border-top: 1px solid #333; margin-top: 12px;">
+        <div style="color: #999; font-size: 12px; margin-bottom: 8px; font-weight: 600;">
+          📚 Available Chats (${untrackedChats.length})
+        </div>
+        <div style="max-height: 200px; overflow-y: auto;">
+          ${untrackedChats.slice(0, 10).map((chat, index) => `
+            <div class="available-chat-item" data-chat-index="${index}" style="
+              background: #252525;
+              padding: 6px 8px;
+              margin-bottom: 4px;
+              border-radius: 4px;
+              cursor: pointer;
+              border-left: 2px solid #666;
+              font-size: 11px;
+              color: #ccc;
+              transition: all 0.2s;
+            ">
+              ${chat.title.substring(0, 45)}${chat.title.length > 45 ? '...' : ''}
+            </div>
+          `).join('')}
+          ${untrackedChats.length > 10 ? `<div style="color: #666; font-size: 10px; padding: 4px;">...${untrackedChats.length - 10} more</div>` : ''}
+        </div>
+      </div>
+    ` : '';
+
     return `
       <div class="arbor-header">
         <h2 id="tree-title-editable" style="cursor: pointer; flex: 1;" title="Click to edit tree title">🌳 ${currentTree.title}</h2>
         <button class="arbor-toggle-btn" id="toggle-sidebar">Hide</button>
       </div>
-      <div class="arbor-content" id="tree-view">
-        ${treeHTML}
-      </div>
-      <div class="action-buttons">
-        <button class="btn" id="browse-chats" title="Add existing ChatGPT conversations">
-          📚 Browse Chats
-        </button>
+      <div class="arbor-content" id="tree-view" style="display: flex; flex-direction: column;">
+        <div style="flex-shrink: 0;">
+          ${treeHTML}
+        </div>
+        ${availableChatsSection}
       </div>
       <div class="action-buttons">
         <button class="btn btn-secondary" id="create-branch" title="Create a subtopic from current chat (copies context)">
@@ -650,6 +725,7 @@ class ArborExtensionProduction {
     if (!node) return '';
 
     const isActive = this.state.currentNodeId === nodeId;
+    const isRoot = nodeId === tree.rootNodeId;
     const platformEmoji = {
       chatgpt: '🤖',
       gemini: '✨',
@@ -657,7 +733,10 @@ class ArborExtensionProduction {
     }[node.platform];
 
     let html = `
-      <div class="tree-node ${isActive ? 'active' : ''}" data-node-id="${nodeId}">
+      <div class="tree-node ${isActive ? 'active' : ''}"
+           data-node-id="${nodeId}"
+           draggable="${!isRoot}"
+           style="cursor: ${isRoot ? 'pointer' : 'grab'};">
         <div class="tree-node-title">${platformEmoji} ${node.title}</div>
         <div class="tree-node-meta">
           <span>${node.children.length} branches</span>
@@ -1503,6 +1582,36 @@ class ArborExtensionProduction {
       this.editTreeTitle();
     });
 
+    // Available chat items click handlers
+    const trackedUrls = new Set<string>();
+    Object.values(this.state.trees).forEach(tree => {
+      Object.values(tree.nodes).forEach(node => {
+        trackedUrls.add(node.url);
+      });
+    });
+
+    const untrackedChats = this.availableChats.filter(chat => !trackedUrls.has(chat.url));
+
+    document.querySelectorAll('.available-chat-item').forEach((item) => {
+      item.addEventListener('mouseenter', () => {
+        (item as HTMLElement).style.background = '#2d3748';
+        (item as HTMLElement).style.borderLeftColor = '#4a9eff';
+      });
+
+      item.addEventListener('mouseleave', () => {
+        (item as HTMLElement).style.background = '#252525';
+        (item as HTMLElement).style.borderLeftColor = '#666';
+      });
+
+      item.addEventListener('click', async () => {
+        const index = parseInt((item as HTMLElement).dataset.chatIndex || '0');
+        const chat = untrackedChats[index];
+        if (chat) {
+          await this.addChatToTree(chat.id, chat.url, chat.title);
+        }
+      });
+    });
+
     // Browse chats button (works for both empty and populated states)
     document.getElementById('browse-chats')?.addEventListener('click', () =>
       this.showChatBrowser()
@@ -1519,14 +1628,55 @@ class ArborExtensionProduction {
     document.getElementById('new-tree')?.addEventListener('click', () => this.createNewTree());
 
     document.querySelectorAll('.tree-node').forEach((node) => {
-      node.addEventListener('click', (e) => {
-        const nodeId = (e.currentTarget as HTMLElement).dataset.nodeId;
+      const nodeEl = node as HTMLElement;
+      const nodeId = nodeEl.dataset.nodeId;
+
+      // Click to navigate
+      nodeEl.addEventListener('click', (e) => {
         if (nodeId && this.state.currentTreeId) {
           const tree = this.state.trees[this.state.currentTreeId];
           const chatNode = tree.nodes[nodeId];
           if (chatNode) {
             window.location.href = chatNode.url;
           }
+        }
+      });
+
+      // Drag and drop for reparenting
+      nodeEl.addEventListener('dragstart', (e) => {
+        e.dataTransfer!.effectAllowed = 'move';
+        e.dataTransfer!.setData('text/plain', nodeId!);
+        nodeEl.style.opacity = '0.5';
+      });
+
+      nodeEl.addEventListener('dragend', () => {
+        nodeEl.style.opacity = '1';
+        // Remove all drop indicators
+        document.querySelectorAll('.tree-node').forEach(n => {
+          (n as HTMLElement).style.background = '';
+        });
+      });
+
+      nodeEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer!.dropEffect = 'move';
+        nodeEl.style.background = '#1e3a2e';
+      });
+
+      nodeEl.addEventListener('dragleave', () => {
+        nodeEl.style.background = '';
+      });
+
+      nodeEl.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        nodeEl.style.background = '';
+
+        const draggedNodeId = e.dataTransfer!.getData('text/plain');
+        const dropTargetId = nodeId;
+
+        if (draggedNodeId && dropTargetId && draggedNodeId !== dropTargetId) {
+          await this.reparentNode(draggedNodeId, dropTargetId);
         }
       });
     });
