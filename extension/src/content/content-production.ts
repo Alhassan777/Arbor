@@ -15,6 +15,7 @@ class ArborExtensionProduction {
       currentTreeId: null,
       currentNodeId: null,
       sidebarVisible: true,
+      graphSidebarVisible: true,
     };
     this.init();
   }
@@ -261,10 +262,89 @@ class ArborExtensionProduction {
     this.injectStyles();
     this.injectSidebar();
     this.injectGraphView();
+    this.injectToggleButtons();
     this.adjustMainContent();
 
     this.sidebarInjected = true;
     console.log('✅ UI injected');
+  }
+
+  private injectToggleButtons() {
+    // Left toggle button (for tree sidebar)
+    const leftToggle = document.createElement('div');
+    leftToggle.id = 'arbor-left-toggle';
+    leftToggle.innerHTML = `
+      <button style="
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #4a9eff;
+        color: #fff;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 999998;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      " onmouseover="this.style.background='#3a8eef'" onmouseout="this.style.background='#4a9eff'">
+        🌳
+      </button>
+    `;
+    document.body.appendChild(leftToggle);
+
+    leftToggle.querySelector('button')?.addEventListener('click', () => {
+      const sidebar = document.getElementById('arbor-sidebar-container');
+      if (sidebar) {
+        sidebar.style.display = 'flex';
+        this.state.sidebarVisible = true;
+        (leftToggle.querySelector('button') as HTMLElement).style.display = 'none';
+        this.adjustMainContent();
+      }
+    });
+
+    // Right toggle button (for graph sidebar)
+    const rightToggle = document.createElement('div');
+    rightToggle.id = 'arbor-right-toggle';
+    rightToggle.innerHTML = `
+      <button style="
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #4a9eff;
+        color: #fff;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 999998;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      " onmouseover="this.style.background='#3a8eef'" onmouseout="this.style.background='#4a9eff'">
+        📊
+      </button>
+    `;
+    document.body.appendChild(rightToggle);
+
+    rightToggle.querySelector('button')?.addEventListener('click', () => {
+      const graph = document.getElementById('arbor-graph-container');
+      if (graph) {
+        graph.style.display = 'flex';
+        this.state.graphSidebarVisible = true;
+        (rightToggle.querySelector('button') as HTMLElement).style.display = 'none';
+        this.adjustMainContent();
+      }
+    });
   }
 
   private injectStyles() {
@@ -706,8 +786,18 @@ class ArborExtensionProduction {
   private attachSidebarListeners() {
     document.getElementById('toggle-sidebar')?.addEventListener('click', () => {
       const sidebar = document.getElementById('arbor-sidebar-container');
+      const leftToggle = document.getElementById('arbor-left-toggle')?.querySelector('button') as HTMLElement;
+
       if (sidebar) {
-        sidebar.style.display = sidebar.style.display === 'none' ? 'flex' : 'none';
+        if (sidebar.style.display === 'none') {
+          sidebar.style.display = 'flex';
+          this.state.sidebarVisible = true;
+          if (leftToggle) leftToggle.style.display = 'none';
+        } else {
+          sidebar.style.display = 'none';
+          this.state.sidebarVisible = false;
+          if (leftToggle) leftToggle.style.display = 'flex';
+        }
         this.adjustMainContent();
       }
     });
@@ -744,8 +834,18 @@ class ArborExtensionProduction {
   private attachGraphListeners() {
     document.getElementById('toggle-graph')?.addEventListener('click', () => {
       const graph = document.getElementById('arbor-graph-container');
+      const rightToggle = document.getElementById('arbor-right-toggle')?.querySelector('button') as HTMLElement;
+
       if (graph) {
-        graph.style.display = graph.style.display === 'none' ? 'flex' : 'none';
+        if (graph.style.display === 'none') {
+          graph.style.display = 'flex';
+          this.state.graphSidebarVisible = true;
+          if (rightToggle) rightToggle.style.display = 'none';
+        } else {
+          graph.style.display = 'none';
+          this.state.graphSidebarVisible = false;
+          if (rightToggle) rightToggle.style.display = 'flex';
+        }
         this.adjustMainContent();
       }
     });

@@ -13,6 +13,20 @@ export interface ChatNode {
   summary?: string;
   tags?: string[];
   connectionLabel?: ConnectionType;
+
+  // Visual customization
+  customPosition?: { x: number; y: number }; // Custom position on canvas
+  color?: string; // Hex color code
+  shape?: 'rectangle' | 'circle' | 'rounded' | 'diamond';
+}
+
+export interface Connection {
+  fromNodeId: string;
+  toNodeId: string;
+  label?: string;
+  type?: ConnectionType;
+  style?: 'solid' | 'dashed' | 'dotted' | 'curved';
+  color?: string;
 }
 
 export type ConnectionType =
@@ -31,6 +45,7 @@ export interface ChatTree {
   rootNodeId: string;
   title: string;
   nodes: Record<string, ChatNode>; // nodeId -> ChatNode
+  connections?: Connection[]; // Custom connections
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +55,7 @@ export interface ExtensionState {
   currentTreeId: string | null;
   currentNodeId: string | null;
   sidebarVisible: boolean;
+  graphSidebarVisible: boolean;
 }
 
 export interface Platform {

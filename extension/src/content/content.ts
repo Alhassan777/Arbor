@@ -12,6 +12,7 @@ class ArborExtension {
       currentTreeId: null,
       currentNodeId: null,
       sidebarVisible: true,
+      graphSidebarVisible: true,
     };
     this.init();
   }
