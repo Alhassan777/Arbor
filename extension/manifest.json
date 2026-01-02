@@ -23,7 +23,6 @@
         "https://perplexity.ai/*"
       ],
       "js": ["content.js"],
-      "css": ["sidebar.css"],
       "run_at": "document_idle"
     }
   ],
