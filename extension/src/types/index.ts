@@ -44,7 +44,22 @@ export interface ExtensionState {
 
 export interface Platform {
   name: string;
+  isActive(): boolean;
+  getChatId(): string | null;
   detectCurrentChatUrl(): string | null;
   detectChatTitle(): string | null;
-  getChatId(): string | null;
+  isInConversation(): boolean;
+  getSelectedText(): string | null;
+  openNewChat(): void;
+  navigateToChat(chatId: string): void;
+  generateBranchContext(params: {
+    parentTitle: string;
+    summary?: string;
+    selectedText?: string;
+    connectionType?: string;
+  }): string;
+  copyToClipboard(text: string): Promise<boolean>;
+  onNavigationChange(callback: (chatId: string | null) => void): void;
+  extractMessages(): Array<{ role: 'user' | 'assistant'; content: string }>;
+  getRecentMessages(count?: number): Array<{ role: 'user' | 'assistant'; content: string }>;
 }

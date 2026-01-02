@@ -2,6 +2,12 @@
 
 Organize your AI chats hierarchically across ChatGPT, Gemini, and Perplexity.
 
+**🎉 NOW PRODUCTION-READY!**
+- ✅ Real chat detection
+- ✅ Persistent IndexedDB storage
+- ✅ Automatic tracking
+- ✅ Context generation for branching
+
 ## 🚀 Quick Start - Testing the Extension
 
 ### 1. Build the Extension
@@ -86,15 +92,18 @@ extension/
 └── tsconfig.json
 ```
 
-## 🎨 Current Features (Demo)
+## 🎨 Production Features
 
-- ✅ Left sidebar with tree view
-- ✅ Right sidebar with graph visualization
-- ✅ Demo data showing hierarchical structure
-- ✅ Click nodes to navigate
-- ✅ Add new chats
-- ✅ Create branches
-- ✅ Platform detection (ChatGPT/Gemini/Perplexity)
+- ✅ **Real chat detection** - Automatically detects ChatGPT conversations
+- ✅ **IndexedDB storage** - Persistent storage (50MB+)
+- ✅ **Automatic tracking** - Shows prompt: "Track this chat in Arbor?"
+- ✅ **Context generation** - Smart branching with conversation history
+- ✅ **Tree navigation** - Click nodes to open chats
+- ✅ **Graph visualization** - See your conversation hierarchy
+- ✅ **Smart linking** - Auto-link parent-child relationships
+- ✅ **SPA detection** - Tracks navigation in single-page apps
+
+**[See full feature documentation →](./PRODUCTION-FEATURES.md)**
 
 ## 🔨 Development Commands
 
