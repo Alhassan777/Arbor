@@ -35,15 +35,32 @@ export class ChatGPTPlatform implements Platform {
    * ChatGPT displays the title in various places
    */
   detectChatTitle(): string | null {
-    // Try multiple selectors in order of preference
+    const chatId = this.getChatId();
+
+    // First try: Find the exact chat in the sidebar by matching href
+    if (chatId) {
+      const sidebarLinks = document.querySelectorAll('nav a[href*="/c/"]');
+      for (const link of Array.from(sidebarLinks)) {
+        const href = (link as HTMLAnchorElement).href;
+        if (href.includes(chatId)) {
+          const titleElement = link.querySelector('[class*="line-clamp"]') || link;
+          const title = titleElement.textContent?.trim();
+          if (title && title.length > 0) {
+            return title.length > 100 ? title.substring(0, 97) + '...' : title;
+          }
+        }
+      }
+    }
+
+    // Fallback: Try multiple selectors
     const selectors = [
-      // Main chat title in sidebar (when chat is selected)
-      'nav [class*="group"] [class*="flex-1"] [class*="text-sm"]',
+      // Sidebar selected item
+      'nav a[aria-current="page"]',
       // Page title
       'title',
       // Header title
       'h1',
-      // Fallback: first message content
+      // First message content
       '[data-message-author-role="user"] [class*="markdown"]',
     ];
 
@@ -67,6 +84,38 @@ export class ChatGPTPlatform implements Platform {
     }
 
     return 'Untitled Chat';
+  }
+
+  /**
+   * Get all chats from ChatGPT sidebar
+   * Returns array of {id, title, url}
+   */
+  getAllChatsFromSidebar(): Array<{ id: string; title: string; url: string }> {
+    const chats: Array<{ id: string; title: string; url: string }> = [];
+
+    // Find all chat links in sidebar
+    const sidebarLinks = document.querySelectorAll('nav a[href*="/c/"]');
+
+    sidebarLinks.forEach(link => {
+      const href = (link as HTMLAnchorElement).href;
+      const match = href.match(/\/c\/([a-zA-Z0-9-]+)/);
+
+      if (match) {
+        const chatId = match[1];
+
+        // Extract title from the link
+        const titleElement = link.querySelector('[class*="line-clamp"]') || link;
+        const title = titleElement.textContent?.trim() || 'Untitled Chat';
+
+        chats.push({
+          id: chatId,
+          title,
+          url: href,
+        });
+      }
+    });
+
+    return chats;
   }
 
   /**
