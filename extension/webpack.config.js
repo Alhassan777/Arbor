@@ -3,7 +3,8 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: {
-    content: './src/content/content.ts',
+    // Use production version with real chat tracking
+    content: './src/content/content-production.ts',
     background: './src/background/background.ts',
   },
   module: {
