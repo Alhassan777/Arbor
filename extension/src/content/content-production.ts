@@ -510,10 +510,25 @@ class ArborExtensionProduction {
           <div class="empty-state">
             <div class="empty-state-icon">🌱</div>
             <div class="empty-state-text">
-              No trees yet!<br><br>
-              Start a chat in ChatGPT and we'll offer to track it.
+              <strong>Welcome to Arbor!</strong><br><br>
+
+              <strong>📚 To add existing chats:</strong><br>
+              Click "Browse Chats" button below<br><br>
+
+              <strong>🆕 Or visit any ChatGPT chat</strong><br>
+              and click "Yes" when prompted
             </div>
           </div>
+        </div>
+        <div class="action-buttons">
+          <button class="btn" id="browse-chats-empty" title="Add existing ChatGPT conversations">
+            📚 Browse Chats
+          </button>
+        </div>
+        <div style="padding: 12px; border-top: 1px solid #333; font-size: 11px; color: #666;">
+          <strong style="color: #999;">Quick Tips:</strong><br>
+          • <strong>Branch:</strong> Create subtopic from current chat<br>
+          • <strong>New Tree:</strong> Start fresh tree for new project
         </div>
       `;
     }
@@ -529,8 +544,17 @@ class ArborExtensionProduction {
         ${treeHTML}
       </div>
       <div class="action-buttons">
-        <button class="btn btn-secondary" id="create-branch">Branch</button>
-        <button class="btn btn-secondary" id="new-tree">New Tree</button>
+        <button class="btn" id="browse-chats" title="Add existing ChatGPT conversations">
+          📚 Browse Chats
+        </button>
+      </div>
+      <div class="action-buttons">
+        <button class="btn btn-secondary" id="create-branch" title="Create a subtopic from current chat (copies context)">
+          🌿 Branch
+        </button>
+        <button class="btn btn-secondary" id="new-tree" title="Start a new tree for a different project">
+          🌳 New Tree
+        </button>
       </div>
     `;
   }
@@ -688,6 +712,15 @@ class ArborExtensionProduction {
       }
     });
 
+    // Browse chats button (works for both empty and populated states)
+    document.getElementById('browse-chats')?.addEventListener('click', () =>
+      this.showChatBrowser()
+    );
+
+    document.getElementById('browse-chats-empty')?.addEventListener('click', () =>
+      this.showChatBrowser()
+    );
+
     document.getElementById('create-branch')?.addEventListener('click', () =>
       this.createBranch()
     );
@@ -782,6 +815,200 @@ class ArborExtensionProduction {
     }
   }
 
+  private showChatBrowser() {
+    // Get all chats from ChatGPT sidebar
+    const allChats = this.currentPlatform.getAllChatsFromSidebar();
+
+    if (allChats.length === 0) {
+      this.showNotification('No chats found in sidebar. Try scrolling to load more chats.', 'error');
+      return;
+    }
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'arbor-chat-browser-modal';
+    modal.innerHTML = `
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.8);
+        z-index: 99999999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <div style="
+          background: #1a1a1a;
+          border-radius: 12px;
+          padding: 24px;
+          max-width: 600px;
+          width: 90%;
+          max-height: 80vh;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        ">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="color: #fff; margin: 0; font-size: 20px;">📚 Browse ChatGPT Chats</h2>
+            <button id="close-chat-browser" style="
+              background: none;
+              border: none;
+              color: #999;
+              font-size: 24px;
+              cursor: pointer;
+              padding: 0;
+              width: 32px;
+              height: 32px;
+            ">×</button>
+          </div>
+
+          <p style="color: #999; margin-bottom: 16px; font-size: 14px;">
+            Found ${allChats.length} chat(s). Click to add to your current tree.
+          </p>
+
+          <div style="
+            flex: 1;
+            overflow-y: auto;
+            margin: 0 -24px;
+            padding: 0 24px;
+          ">
+            ${allChats.map((chat, index) => `
+              <div class="chat-browser-item" data-chat-index="${index}" style="
+                background: #252525;
+                padding: 12px 16px;
+                margin-bottom: 8px;
+                border-radius: 6px;
+                cursor: pointer;
+                border-left: 3px solid #4a9eff;
+                transition: all 0.2s;
+              ">
+                <div style="color: #fff; font-size: 14px; font-weight: 500; margin-bottom: 4px;">
+                  ${chat.title}
+                </div>
+                <div style="color: #666; font-size: 11px;">
+                  Click to add to tree
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #333;">
+            <button id="cancel-chat-browser" style="
+              width: 100%;
+              padding: 10px;
+              background: #333;
+              color: #fff;
+              border: none;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+            ">Cancel</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add hover effect via event listeners
+    modal.querySelectorAll('.chat-browser-item').forEach(item => {
+      item.addEventListener('mouseenter', () => {
+        (item as HTMLElement).style.background = '#2a2a2a';
+      });
+      item.addEventListener('mouseleave', () => {
+        (item as HTMLElement).style.background = '#252525';
+      });
+
+      item.addEventListener('click', async () => {
+        const index = parseInt((item as HTMLElement).dataset.chatIndex || '0');
+        const chat = allChats[index];
+        await this.addChatToTree(chat.id, chat.url, chat.title);
+        modal.remove();
+      });
+    });
+
+    // Close handlers
+    modal.querySelector('#close-chat-browser')?.addEventListener('click', () => {
+      modal.remove();
+    });
+
+    modal.querySelector('#cancel-chat-browser')?.addEventListener('click', () => {
+      modal.remove();
+    });
+  }
+
+  private async addChatToTree(chatId: string, url: string, title: string) {
+    // Check if already tracked
+    const existingNode = await db.findNodeByUrl(url);
+    if (existingNode) {
+      this.showNotification('This chat is already tracked!', 'error');
+      return;
+    }
+
+    const nodeId = `node-${Date.now()}`;
+
+    const newNode: ChatNode = {
+      id: nodeId,
+      title,
+      url,
+      platform: 'chatgpt',
+      parentId: this.state.currentNodeId, // Link to current node as parent
+      children: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // If no current tree, create one
+    if (!this.state.currentTreeId) {
+      const treeId = `tree-${Date.now()}`;
+      const tree: ChatTree = {
+        id: treeId,
+        rootNodeId: nodeId,
+        title: title,
+        nodes: { [nodeId]: newNode },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      this.state.trees[treeId] = tree;
+      this.state.currentTreeId = treeId;
+      this.state.currentNodeId = nodeId;
+
+      await db.saveTree(tree);
+      await db.saveNode(newNode, treeId);
+
+      console.log('✅ Created new tree:', tree.title);
+    } else {
+      // Add to existing tree
+      const tree = this.state.trees[this.state.currentTreeId];
+      tree.nodes[nodeId] = newNode;
+
+      // Link as child of current node
+      if (this.state.currentNodeId && tree.nodes[this.state.currentNodeId]) {
+        const parent = tree.nodes[this.state.currentNodeId];
+        if (!parent.children.includes(nodeId)) {
+          parent.children.push(nodeId);
+          await db.saveNode(parent, this.state.currentTreeId);
+        }
+      }
+
+      this.state.currentNodeId = nodeId;
+
+      await db.saveTree(tree);
+      await db.saveNode(newNode, this.state.currentTreeId);
+
+      console.log('✅ Added node to tree:', tree.title);
+    }
+
+    await this.saveState();
+    this.refresh();
+
+    this.showNotification(`"${title}" added to tree! 🌳`, 'success');
+  }
+
   private async createNewTree() {
     const title = prompt('Enter a name for the new tree:');
     if (!title) return;
@@ -790,7 +1017,7 @@ class ArborExtensionProduction {
     this.state.currentNodeId = null;
     await this.saveState();
 
-    this.showNotification('New tree created! Start a chat to add nodes.', 'success');
+    this.showNotification('New tree created! Add chats using "Browse Chats" button.', 'success');
     this.refresh();
   }
 
