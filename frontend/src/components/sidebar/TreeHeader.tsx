@@ -1,21 +1,36 @@
-import { Plus, ChevronLeft, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, ChevronLeft, Sparkles, Edit2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
 
 interface TreeHeaderProps {
+  treeName?: string;
   onNewChat: () => void;
   onToggle: () => void;
+  onRename?: () => void;
 }
 
-export default function TreeHeader({ onNewChat, onToggle }: TreeHeaderProps) {
+export default function TreeHeader({ treeName = 'Arbor', onNewChat, onToggle, onRename }: TreeHeaderProps) {
+  const [isHovering, setIsHovering] = useState(false);
+
   return (
     <div className="px-5 py-4 border-b border-branch bg-gradient-to-br from-forest-floor to-midnight-soil flex items-center justify-between backdrop-blur-sm">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-canopy/10 rounded-xl">
+      <div
+        className="flex items-center gap-3 flex-1 min-w-0 group cursor-pointer"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+        onClick={onRename}
+      >
+        <div className="p-2 bg-canopy/10 rounded-xl flex-shrink-0">
           <Sparkles className="h-4 w-4 text-canopy" />
         </div>
-        <h2 className="text-sm font-bold text-parchment tracking-wide">Arbor</h2>
+        <h2 className="text-sm font-bold text-parchment tracking-wide truncate flex-1">
+          {treeName}
+        </h2>
+        {isHovering && onRename && (
+          <Edit2 className="h-3 w-3 text-canopy flex-shrink-0 opacity-70" />
+        )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <Tooltip>
           <TooltipTrigger asChild>
             <button

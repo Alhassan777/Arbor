@@ -19,6 +19,7 @@ export interface ConversationNode {
 
 export interface ConversationTree {
   id: string;
+  name: string;
   rootNodeId: string;
   nodes: Record<string, ConversationNode>;
 }

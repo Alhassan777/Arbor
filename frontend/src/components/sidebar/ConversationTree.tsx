@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useConversationStore } from '../../store/conversationStore';
+import { useToastStore } from '../../store/toastStore';
 import TreeHeader from './TreeHeader';
 import TreeSearch from './TreeSearch';
 import TreeNode from './TreeNode';
 import ConfirmDialog from '../ConfirmDialog';
+import NameTreeDialog from '../NameTreeDialog';
 
 interface TreeNodeWrapperProps {
   nodeId: string;
@@ -77,11 +79,14 @@ interface ConversationTreeProps {
 }
 
 export default function ConversationTree({ onToggle }: ConversationTreeProps) {
-  const { tree, initializeNewTree, deleteNode, moveNode } = useConversationStore();
+  const { tree, initializeNewTree, deleteNode, moveNode, updateTreeName } = useConversationStore();
+  const { addToast } = useToastStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [newTreeDialogOpen, setNewTreeDialogOpen] = useState(false);
 
   // Auto-expand root node
   useEffect(() => {
@@ -103,7 +108,19 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
   };
 
   const handleNewChat = () => {
-    initializeNewTree();
+    setNewTreeDialogOpen(true);
+  };
+
+  const handleCreateTree = async (name: string) => {
+    await initializeNewTree(name);
+    setNewTreeDialogOpen(false);
+    addToast(`Created tree: ${name}`, 'success');
+  };
+
+  const handleRenameTree = async (name: string) => {
+    await updateTreeName(name);
+    setRenameDialogOpen(false);
+    addToast('Tree renamed', 'success');
   };
 
   const handleDelete = (nodeId: string) => {
@@ -139,7 +156,12 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
   return (
     <>
       <div className="h-full flex flex-col">
-        <TreeHeader onNewChat={handleNewChat} onToggle={onToggle} />
+        <TreeHeader
+          treeName={tree.name}
+          onNewChat={handleNewChat}
+          onToggle={onToggle}
+          onRename={() => setRenameDialogOpen(true)}
+        />
         <TreeSearch value={searchQuery} onChange={setSearchQuery} />
         <div className="flex-1 overflow-y-auto">
           {tree.rootNodeId && (
@@ -155,6 +177,23 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
           )}
         </div>
       </div>
+
+      <NameTreeDialog
+        isOpen={newTreeDialogOpen}
+        title="Name Your New Tree"
+        placeholder="e.g., Research Project, Code Review, etc."
+        onConfirm={handleCreateTree}
+        onCancel={() => setNewTreeDialogOpen(false)}
+      />
+
+      <NameTreeDialog
+        isOpen={renameDialogOpen}
+        title="Rename Tree"
+        initialValue={tree.name}
+        placeholder="Enter new tree name..."
+        onConfirm={handleRenameTree}
+        onCancel={() => setRenameDialogOpen(false)}
+      />
 
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
