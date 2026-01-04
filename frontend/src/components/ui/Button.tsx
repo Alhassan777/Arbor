@@ -4,23 +4,23 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '../../lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-canopy/50 disabled:pointer-events-none disabled:opacity-40 active:scale-95',
   {
     variants: {
       variant: {
         default:
-          'bg-canopy text-midnight-soil font-medium hover:bg-canopy-light shadow-sm hover:shadow-md',
+          'bg-gradient-to-br from-canopy to-canopy-light text-midnight-soil hover:shadow-glow-canopy',
         secondary:
-          'bg-undergrowth border border-branch text-parchment hover:bg-branch',
+          'bg-gradient-to-br from-undergrowth to-forest-floor border-2 border-branch text-parchment hover:border-lichen hover:shadow-sm',
         ghost: 'bg-transparent text-birch hover:bg-undergrowth hover:text-parchment',
         link: 'text-canopy hover:text-canopy-light underline-offset-4 hover:underline',
-        danger: 'bg-berry/10 text-berry border border-berry/30 hover:bg-berry/20',
+        danger: 'bg-berry/10 text-berry border-2 border-berry/30 hover:bg-berry/20 hover:border-berry',
       },
       size: {
-        default: 'h-11 px-6 py-2.5 rounded-organic-lg',
-        sm: 'h-9 px-3 text-xs rounded-organic',
-        lg: 'h-12 px-8 rounded-organic-lg',
-        icon: 'h-10 w-10 rounded-organic',
+        default: 'h-11 px-6 py-2.5 rounded-xl',
+        sm: 'h-9 px-3 text-xs rounded-lg',
+        lg: 'h-12 px-8 rounded-xl',
+        icon: 'h-10 w-10 rounded-xl',
       },
     },
     defaultVariants: {

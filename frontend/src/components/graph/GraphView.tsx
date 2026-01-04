@@ -30,6 +30,7 @@ interface GraphViewProps {
 function GraphViewInner({ onToggle }: GraphViewProps) {
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
   const [isLocked, setIsLocked] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Convert conversation tree to React Flow nodes and edges
   const { nodes: flowNodes, edges: flowEdges } = useMemo(() => {
@@ -112,11 +113,23 @@ function GraphViewInner({ onToggle }: GraphViewProps) {
     setEdges(flowEdges);
   }, [flowNodes, flowEdges, setNodes, setEdges]);
 
+  const onNodeDragStart = useCallback(() => {
+    setIsDragging(true);
+  }, []);
+
+  const onNodeDragStop = useCallback(() => {
+    // Use setTimeout to ensure the drag state is reset after the click event
+    setTimeout(() => setIsDragging(false), 0);
+  }, []);
+
   const onNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      setCurrentNode(node.id);
+      // Only navigate if we're not dragging
+      if (!isDragging) {
+        setCurrentNode(node.id);
+      }
     },
-    [setCurrentNode]
+    [setCurrentNode, isDragging]
   );
 
   if (!tree) {
@@ -131,16 +144,21 @@ function GraphViewInner({ onToggle }: GraphViewProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-midnight-soil">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-text-primary">Graph View</h2>
+      <div className="px-5 py-4 border-b border-branch bg-gradient-to-br from-forest-floor to-midnight-soil flex items-center justify-between backdrop-blur-sm">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-canopy/10 rounded-xl">
+            <GitBranch className="h-4 w-4 text-canopy" />
+          </div>
+          <h2 className="text-sm font-bold text-parchment tracking-wide">Graph View</h2>
+        </div>
         <button
           onClick={onToggle}
-          className="p-1 hover:bg-surface-hover rounded transition-colors"
+          className="p-2 hover:bg-undergrowth rounded-xl transition-all duration-300 active:scale-95 group"
           title="Collapse graph view"
         >
-          <ChevronRight className="h-4 w-4 text-text-secondary" />
+          <ChevronRight className="h-4 w-4 text-birch group-hover:text-canopy transition-colors" />
         </button>
       </div>
 
@@ -152,6 +170,8 @@ function GraphViewInner({ onToggle }: GraphViewProps) {
           onNodesChange={isLocked ? undefined : onNodesChange}
           onEdgesChange={isLocked ? undefined : onEdgesChange}
           onNodeClick={onNodeClick}
+          onNodeDragStart={onNodeDragStart}
+          onNodeDragStop={onNodeDragStop}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           fitView
@@ -163,14 +183,14 @@ function GraphViewInner({ onToggle }: GraphViewProps) {
           elementsSelectable={!isLocked}
           className="bg-background"
         >
-          <Background color="rgba(255, 255, 255, 0.03)" gap={16} />
+          <Background color="rgba(45, 212, 167, 0.02)" gap={20} />
           <MiniMap
             nodeColor={(node) => {
               const data = node.data as ConversationNodeData;
-              return data.isActive ? '#6366f1' : '#52525b';
+              return data.isActive ? '#2dd4a7' : '#4a5854';
             }}
-            className="bg-surface border border-border"
-            maskColor="rgba(10, 10, 15, 0.6)"
+            className="!bg-gradient-to-br !from-forest-floor !to-undergrowth !border-2 !border-branch !rounded-xl !shadow-dappled"
+            maskColor="rgba(12, 15, 14, 0.7)"
           />
           <GraphControls isLocked={isLocked} onToggleLock={() => setIsLocked(!isLocked)} />
         </ReactFlow>
