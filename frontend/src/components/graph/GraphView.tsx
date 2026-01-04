@@ -14,6 +14,7 @@ import { useConversationStore } from '../../store/conversationStore';
 import ConversationNodeCard, { ConversationNodeData } from './ConversationNodeCard';
 import BranchEdge from './BranchEdge';
 import GraphControls from './GraphControls';
+import ParticleBackground from '../effects/ParticleBackground';
 
 const nodeTypes = {
   conversation: ConversationNodeCard,
@@ -164,6 +165,7 @@ function GraphViewInner({ onToggle }: GraphViewProps) {
 
       {/* Graph */}
       <div className="flex-1 relative">
+        <ParticleBackground particleCount={40} />
         <ReactFlow
           nodes={nodes}
           edges={edges}
