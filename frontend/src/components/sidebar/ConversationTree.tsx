@@ -3,6 +3,7 @@ import { useConversationStore } from '../../store/conversationStore';
 import TreeHeader from './TreeHeader';
 import TreeSearch from './TreeSearch';
 import TreeNode from './TreeNode';
+import ConfirmDialog from '../ConfirmDialog';
 
 interface TreeNodeWrapperProps {
   nodeId: string;
@@ -10,6 +11,8 @@ interface TreeNodeWrapperProps {
   expandedNodes: Set<string>;
   onToggleExpand: (nodeId: string) => void;
   searchQuery: string;
+  onDelete?: (nodeId: string) => void;
+  onMove?: (nodeId: string, newParentId: string | null) => void;
 }
 
 function TreeNodeWrapper({
@@ -18,6 +21,8 @@ function TreeNodeWrapper({
   expandedNodes,
   onToggleExpand,
   searchQuery,
+  onDelete,
+  onMove,
 }: TreeNodeWrapperProps) {
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
 
@@ -36,6 +41,7 @@ function TreeNodeWrapper({
   const isActive = currentNodeId === nodeId;
   const isExpanded = expandedNodes.has(nodeId);
   const hasChildren = childNodes.length > 0;
+  const isRootNode = tree?.rootNodeId === nodeId;
 
   return (
     <TreeNode
@@ -44,8 +50,11 @@ function TreeNodeWrapper({
       isActive={isActive}
       isExpanded={isExpanded}
       hasChildren={hasChildren}
+      isRootNode={isRootNode}
       onSelect={setCurrentNode}
       onToggleExpand={onToggleExpand}
+      onDelete={onDelete}
+      onMove={onMove}
     >
       {childNodes.map((childNode) => (
         <TreeNodeWrapper
@@ -55,6 +64,8 @@ function TreeNodeWrapper({
           expandedNodes={expandedNodes}
           onToggleExpand={onToggleExpand}
           searchQuery={searchQuery}
+          onDelete={onDelete}
+          onMove={onMove}
         />
       ))}
     </TreeNode>
@@ -66,9 +77,11 @@ interface ConversationTreeProps {
 }
 
 export default function ConversationTree({ onToggle }: ConversationTreeProps) {
-  const { tree, initializeNewTree } = useConversationStore();
+  const { tree, initializeNewTree, deleteNode, moveNode } = useConversationStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
 
   // Auto-expand root node
   useEffect(() => {
@@ -93,6 +106,28 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
     initializeNewTree();
   };
 
+  const handleDelete = (nodeId: string) => {
+    setNodeToDelete(nodeId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (nodeToDelete) {
+      await deleteNode(nodeToDelete);
+      setDeleteConfirmOpen(false);
+      setNodeToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setNodeToDelete(null);
+  };
+
+  const handleMove = async (nodeId: string, newParentId: string | null) => {
+    await moveNode(nodeId, newParentId);
+  };
+
   if (!tree) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -102,20 +137,35 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <TreeHeader onNewChat={handleNewChat} onToggle={onToggle} />
-      <TreeSearch value={searchQuery} onChange={setSearchQuery} />
-      <div className="flex-1 overflow-y-auto">
-        {tree.rootNodeId && (
-          <TreeNodeWrapper
-            nodeId={tree.rootNodeId}
-            depth={0}
-            expandedNodes={expandedNodes}
-            onToggleExpand={handleToggleExpand}
-            searchQuery={searchQuery}
-          />
-        )}
+    <>
+      <div className="h-full flex flex-col">
+        <TreeHeader onNewChat={handleNewChat} onToggle={onToggle} />
+        <TreeSearch value={searchQuery} onChange={setSearchQuery} />
+        <div className="flex-1 overflow-y-auto">
+          {tree.rootNodeId && (
+            <TreeNodeWrapper
+              nodeId={tree.rootNodeId}
+              depth={0}
+              expandedNodes={expandedNodes}
+              onToggleExpand={handleToggleExpand}
+              searchQuery={searchQuery}
+              onDelete={handleDelete}
+              onMove={handleMove}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Node"
+        message="Are you sure you want to delete this node and all its children? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+    </>
   );
 }

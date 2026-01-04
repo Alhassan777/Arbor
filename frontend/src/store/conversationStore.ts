@@ -41,6 +41,7 @@ interface ConversationState {
   createBranch: (sourceMessageId?: string, selectedText?: string) => Promise<string>;
   updateNodeTitle: (nodeId: string, title: string) => Promise<void>;
   deleteNode: (nodeId: string) => Promise<void>;
+  moveNode: (nodeId: string, newParentId: string | null) => Promise<void>;
 }
 
 export const useConversationStore = create<ConversationState>((set, get) => ({
@@ -241,6 +242,47 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
         tree: { ...tree, nodes: updatedNodes },
         currentNodeId: newCurrentId
       });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  moveNode: async (nodeId: string, newParentId: string | null) => {
+    const { tree } = get();
+    if (!tree) return;
+
+    // Prevent moving root node
+    if (nodeId === tree.rootNodeId) {
+      set({ error: 'Cannot move root node' });
+      return;
+    }
+
+    // Prevent moving to self
+    if (nodeId === newParentId) {
+      set({ error: 'Cannot move node to itself' });
+      return;
+    }
+
+    // Prevent circular reference - check if newParentId is a descendant of nodeId
+    if (newParentId) {
+      let checkId: string | null = newParentId;
+      while (checkId) {
+        if (checkId === nodeId) {
+          set({ error: 'Cannot move node to its own descendant' });
+          return;
+        }
+        checkId = tree.nodes[checkId]?.parentId || null;
+      }
+    }
+
+    try {
+      const updatedNode = await api.moveNode(nodeId, newParentId);
+
+      // Update the node in the tree
+      const updatedNodes = { ...tree.nodes, [nodeId]: updatedNode };
+      set({ tree: { ...tree, nodes: updatedNodes } });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Unknown error'

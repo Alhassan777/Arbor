@@ -27,12 +27,52 @@ class ArborExtension {
       this.createDemoTree();
     }
 
-    // Inject sidebars after page loads
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => this.injectUI());
+    // Wait for page to be ready before injecting UI
+    this.waitForPageReady();
+  }
+
+  private waitForPageReady() {
+    // Try to inject immediately if document is ready
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      // Wait a bit for any dynamic content to load
+      setTimeout(() => this.injectUI(), 500);
     } else {
-      this.injectUI();
+      // Wait for DOM to be ready
+      document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => this.injectUI(), 500);
+      });
     }
+
+    // Also inject on full page load as a fallback
+    window.addEventListener('load', () => {
+      if (!this.sidebarInjected) {
+        setTimeout(() => this.injectUI(), 500);
+      }
+    });
+
+    // Watch for SPA navigation and re-inject if UI is missing
+    this.watchForNavigation();
+  }
+
+  private watchForNavigation() {
+    // Watch for URL changes (SPA navigation)
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+      const currentUrl = location.href;
+      if (currentUrl !== lastUrl) {
+        lastUrl = currentUrl;
+        // Check if UI is still visible, if not, re-inject
+        setTimeout(() => {
+          const sidebar = document.getElementById('arbor-sidebar-container');
+          if (!sidebar || !document.body.contains(sidebar)) {
+            console.log('Arbor: UI missing after navigation, re-injecting...');
+            this.sidebarInjected = false;
+            this.graphInjected = false;
+            this.injectUI();
+          }
+        }, 1000);
+      }
+    }).observe(document, { subtree: true, childList: true });
   }
 
   private createDemoTree() {
@@ -124,24 +164,44 @@ class ArborExtension {
   }
 
   private injectUI() {
-    if (this.sidebarInjected) return;
+    if (this.sidebarInjected) {
+      // UI already injected, just make sure it's visible
+      const sidebar = document.getElementById('arbor-sidebar-container');
+      const graph = document.getElementById('arbor-graph-container');
+      if (sidebar && graph && document.body.contains(sidebar)) {
+        return;
+      }
+      // If UI elements exist but are not in DOM, reset and re-inject
+      this.sidebarInjected = false;
+      this.graphInjected = false;
+    }
 
-    // Inject CSS first
-    this.injectStyles();
+    try {
+      // Inject CSS first
+      this.injectStyles();
 
-    // Inject left sidebar
-    this.injectSidebar();
+      // Inject left sidebar
+      this.injectSidebar();
 
-    // Inject right graph view
-    this.injectGraphView();
+      // Inject right graph view
+      this.injectGraphView();
 
-    // Adjust main content margin
-    this.adjustMainContent();
+      // Adjust main content margin
+      this.adjustMainContent();
 
-    this.sidebarInjected = true;
+      this.sidebarInjected = true;
+      console.log('Arbor: UI injected successfully');
+    } catch (error) {
+      console.error('Arbor: Error injecting UI:', error);
+    }
   }
 
   private injectStyles() {
+    // Check if styles already exist
+    if (document.getElementById('arbor-extension-styles')) {
+      return;
+    }
+
     const style = document.createElement('style');
     style.id = 'arbor-extension-styles';
     style.textContent = `
@@ -346,8 +406,19 @@ class ArborExtension {
   }
 
   private injectSidebar() {
+    // Check if sidebar already exists
+    let sidebar = document.getElementById('arbor-sidebar-container');
+    if (sidebar && document.body.contains(sidebar)) {
+      return;
+    }
+
+    // Remove existing sidebar if it's detached from DOM
+    if (sidebar) {
+      sidebar.remove();
+    }
+
     // Create sidebar container
-    const sidebar = document.createElement('div');
+    sidebar = document.createElement('div');
     sidebar.id = 'arbor-sidebar-container';
     sidebar.innerHTML = this.getSidebarHTML();
     document.body.insertBefore(sidebar, document.body.firstChild);
@@ -357,7 +428,18 @@ class ArborExtension {
   }
 
   private injectGraphView() {
-    const graph = document.createElement('div');
+    // Check if graph already exists
+    let graph = document.getElementById('arbor-graph-container');
+    if (graph && document.body.contains(graph)) {
+      return;
+    }
+
+    // Remove existing graph if it's detached from DOM
+    if (graph) {
+      graph.remove();
+    }
+
+    graph = document.createElement('div');
     graph.id = 'arbor-graph-container';
     graph.innerHTML = this.getGraphHTML();
     document.body.appendChild(graph);
