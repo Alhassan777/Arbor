@@ -221,8 +221,8 @@ class ArborExtensionProduction {
       const treeId = `tree-${Date.now()}`;
       const tree: ChatTree = {
         id: treeId,
+        name: title, // Use chat title as initial tree name
         rootNodeId: nodeId,
-        title: title,
         nodes: { [nodeId]: newNode },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -235,7 +235,7 @@ class ArborExtensionProduction {
       await db.saveTree(tree);
       await db.saveNode(newNode, treeId);
 
-      console.log('✅ Created new tree:', tree.title);
+      console.log('✅ Created new tree:', tree.name);
     } else {
       // Add to existing tree
       const tree = this.state.trees[this.state.currentTreeId];
@@ -255,7 +255,7 @@ class ArborExtensionProduction {
       await db.saveTree(tree);
       await db.saveNode(newNode, this.state.currentTreeId);
 
-      console.log('✅ Added node to tree:', tree.title);
+      console.log('✅ Added node to tree:', tree.name);
     }
 
     await this.saveState();
@@ -665,7 +665,7 @@ class ArborExtensionProduction {
                 transition: all 0.2s;
               ">
                 <div style="color: #fff; font-size: 13px; font-weight: 500; margin-bottom: 4px;">
-                  ${tree.title}
+                  ${tree.name}
                 </div>
                 <div style="color: #999; font-size: 11px;">
                   ${nodeCount} chat${nodeCount !== 1 ? 's' : ''} • ${isActive ? 'Active' : 'Click to view'}
@@ -1658,7 +1658,7 @@ class ArborExtensionProduction {
     if (!tree) return;
 
     const nodeCount = Object.keys(tree.nodes).length;
-    const message = `Delete tree "${tree.title}"?\n\nThis will permanently remove:\n• ${nodeCount} chat${nodeCount !== 1 ? 's' : ''}\n• All branches and connections\n\nThis action cannot be undone.`;
+    const message = `Delete tree "${tree.name}"?\n\nThis will permanently remove:\n• ${nodeCount} chat${nodeCount !== 1 ? 's' : ''}\n• All branches and connections\n\nThis action cannot be undone.`;
 
     const confirmed = window.confirm(message);
     if (!confirmed) return;
@@ -1688,7 +1688,7 @@ class ArborExtensionProduction {
       await this.saveState();
     }
 
-    this.showNotification(`Tree "${tree.title}" deleted! 🗑️`, 'success');
+    this.showNotification(`Tree "${tree.name}" deleted! 🗑️`, 'success');
     this.refresh();
   }
 
@@ -1953,12 +1953,12 @@ class ArborExtensionProduction {
     if (!this.state.currentTreeId) return;
 
     const tree = this.state.trees[this.state.currentTreeId];
-    const newTitle = prompt('Enter new tree title:', tree.title);
+    const newName = prompt('Enter new tree name:', tree.name);
 
-    if (newTitle && newTitle.trim().length > 0) {
-      tree.title = newTitle.trim();
+    if (newName && newName.trim().length > 0) {
+      tree.name = newName.trim();
       await db.saveTree(tree);
-      this.showNotification('Tree title updated! 📝', 'success');
+      this.showNotification('Tree name updated! 📝', 'success');
       this.refresh();
     }
   }
@@ -2274,8 +2274,8 @@ class ArborExtensionProduction {
       const treeId = `tree-${Date.now()}`;
       const tree: ChatTree = {
         id: treeId,
+        name: title, // Use chat title as initial tree name
         rootNodeId: nodeId,
-        title: title,
         nodes: { [nodeId]: newNode },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -2288,7 +2288,7 @@ class ArborExtensionProduction {
       await db.saveTree(tree);
       await db.saveNode(newNode, treeId);
 
-      console.log('✅ Created new tree:', tree.title);
+      console.log('✅ Created new tree:', tree.name);
     } else {
       // Add to existing tree
       const tree = this.state.trees[this.state.currentTreeId];
@@ -2308,7 +2308,7 @@ class ArborExtensionProduction {
       await db.saveTree(tree);
       await db.saveNode(newNode, this.state.currentTreeId);
 
-      console.log('✅ Added node to tree:', tree.title);
+      console.log('✅ Added node to tree:', tree.name);
     }
 
     await this.saveState();

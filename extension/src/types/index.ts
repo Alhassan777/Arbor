@@ -42,8 +42,8 @@ export type ConnectionType =
 
 export interface ChatTree {
   id: string;
+  name: string; // Tree name (independent from node titles)
   rootNodeId: string;
-  title: string;
   nodes: Record<string, ChatNode>; // nodeId -> ChatNode
   connections?: Connection[]; // Custom connections
   createdAt: string;

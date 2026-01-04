@@ -133,8 +133,8 @@ class ArborExtension {
 
     const tree: ChatTree = {
       id: treeId,
+      name: 'AI Research Project',
       rootNodeId: rootId,
-      title: 'AI Research Project',
       nodes: {
         [rootId]: rootNode,
         'node-2': childNode1,
@@ -738,8 +738,8 @@ class ArborExtension {
       const treeId = `tree-${Date.now()}`;
       const tree: ChatTree = {
         id: treeId,
+        name: title, // Use chat title as initial tree name
         rootNodeId: newNode.id,
-        title: title,
         nodes: { [newNode.id]: newNode },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
