@@ -6,9 +6,9 @@ import AppLayout from './components/layout/AppLayout';
 import ConversationTree from './components/sidebar/ConversationTree';
 import ChatContainer from './components/chat/ChatContainer';
 import GraphView from './components/graph/GraphView';
-// import { ExcalidrawCanvas } from './components/graph/ExcalidrawCanvas';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
+import CommandPalette from './components/CommandPalette';
 import { TooltipProvider } from './components/ui/Tooltip';
 
 function App() {
@@ -16,6 +16,7 @@ function App() {
   const { toasts, removeToast } = useToastStore();
   const { apiKey } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
   const [isChatPanelOpen, setIsChatPanelOpen] = useState(true);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
@@ -43,8 +44,14 @@ function App() {
   useEffect(() => {
     // Global keyboard shortcuts
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K to toggle settings
+      // Cmd/Ctrl + K to toggle command palette
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+
+      // Cmd/Ctrl + , to toggle settings
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault();
         setShowSettings((prev) => !prev);
       }
@@ -112,16 +119,14 @@ function App() {
         onToggleRightSidebar={() => setIsRightSidebarOpen((prev) => !prev)}
         isAnnotateMode={isAnnotateMode}
         onToggleAnnotateMode={handleToggleAnnotateMode}
-        excalidrawOverlay={
-          // tree && isAnnotateMode ? (
-          //   <ExcalidrawCanvas
-          //     tree={tree}
-          //     currentNodeId={currentNodeId}
-          //     onNodeSelect={setCurrentNode}
-          //   />
-          // ) : null
-          null
-        }
+        excalidrawOverlay={null}
+      />
+
+      <CommandPalette
+        open={showCommandPalette}
+        onOpenChange={setShowCommandPalette}
+        onNewChat={initializeNewTree}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       <Settings isOpen={showSettings} onClose={() => setShowSettings(false)} />

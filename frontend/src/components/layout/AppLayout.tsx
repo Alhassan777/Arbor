@@ -40,7 +40,7 @@ export default function AppLayout({
             animate={{ width: 280, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="bg-forest-floor border-r border-branch overflow-hidden flex flex-col"
+            className="bg-forest-floor/95 backdrop-blur-xl border-r border-branch/50 overflow-hidden flex flex-col shadow-lg"
           >
             <div className="w-[280px] h-full flex flex-col">
               {leftSidebar}
@@ -61,7 +61,7 @@ export default function AppLayout({
       {!leftSidebarOpen && (
         <button
           onClick={onToggleLeftSidebar}
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-organic bg-forest-floor border border-branch text-lichen hover:bg-undergrowth hover:text-parchment transition-all shadow-lg"
+          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2.5 rounded-xl bg-forest-floor/80 backdrop-blur-xl border-2 border-branch text-lichen hover:bg-canopy/20 hover:text-canopy hover:border-canopy/50 transition-all shadow-dappled"
           title="Expand tree (⌘[)"
           aria-label="Expand tree sidebar"
         >
@@ -103,7 +103,7 @@ export default function AppLayout({
             animate={{ width: chatPanelOpen ? 'auto' : '100%', opacity: 1, flex: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2, ease: 'easeInOut' }}
-            className="flex-1 bg-forest-floor border-l border-branch overflow-hidden flex flex-col relative"
+            className="flex-1 bg-forest-floor/95 backdrop-blur-xl border-l border-branch/50 overflow-hidden flex flex-col relative shadow-lg"
           >
             {/* Graph header with controls */}
             <div className="absolute top-4 left-4 z-10 flex gap-2">
@@ -111,7 +111,7 @@ export default function AppLayout({
               {!chatPanelOpen && (
                 <button
                   onClick={onToggleChatPanel}
-                  className="p-1.5 rounded-organic bg-forest-floor/80 backdrop-blur border border-branch text-lichen hover:bg-undergrowth hover:text-parchment transition-all"
+                  className="p-2.5 rounded-xl bg-forest-floor/80 backdrop-blur-xl border-2 border-branch text-lichen hover:bg-canopy/20 hover:text-canopy hover:border-canopy/50 transition-all shadow-dappled"
                   title="Show chat (⌘\)"
                   aria-label="Show chat panel"
                 >
@@ -123,7 +123,7 @@ export default function AppLayout({
               {onToggleAnnotateMode && (
                 <button
                   onClick={onToggleAnnotateMode}
-                  className="p-1.5 rounded-organic bg-forest-floor/80 backdrop-blur border border-branch text-lichen hover:bg-canopy hover:text-midnight-soil transition-all flex items-center gap-1.5"
+                  className="px-3 py-2.5 rounded-xl bg-forest-floor/80 backdrop-blur-xl border-2 border-branch text-lichen hover:bg-canopy hover:text-midnight-soil hover:border-canopy transition-all flex items-center gap-2 shadow-dappled font-medium"
                   title={isAnnotateMode ? "Exit annotate mode" : "Enter annotate mode"}
                   aria-label={isAnnotateMode ? "Exit annotate mode" : "Enter annotate mode"}
                 >
