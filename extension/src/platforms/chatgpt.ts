@@ -1,5 +1,5 @@
 // ChatGPT platform integration
-import { Platform } from '../types';
+import { Platform, PlatformName, AIProvider, PLATFORM_TO_PROVIDER } from '../types';
 
 export class ChatGPTPlatform implements Platform {
   name = 'chatgpt';
@@ -399,6 +399,17 @@ export class ChatGPTPlatform implements Platform {
       console.error('Error renaming chat in ChatGPT:', error);
       return false;
     }
+  }
+
+  /**
+   * Get provider info for backend integration
+   * ChatGPT platform can use any backend provider (defaults to Claude)
+   */
+  getProviderInfo(): { platform: PlatformName; provider: AIProvider } {
+    return {
+      platform: 'chatgpt' as PlatformName,
+      provider: PLATFORM_TO_PROVIDER['chatgpt'], // Maps to 'claude' by default
+    };
   }
 }
 

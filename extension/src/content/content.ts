@@ -1,5 +1,6 @@
 // Content script - Injects sidebar into chatbot pages
-import { ChatNode, ChatTree, ExtensionState } from '../types';
+import { ChatNode, ChatTree, ExtensionState, PlatformName, PLATFORM_TO_PROVIDER } from '../types';
+import { getActivePlatform } from '../platforms';
 
 class ArborExtension {
   private state: ExtensionState;
@@ -151,7 +152,14 @@ class ArborExtension {
     this.saveState();
   }
 
-  private detectPlatform(): 'chatgpt' | 'gemini' | 'perplexity' {
+  private detectPlatform(): PlatformName {
+    const platform = getActivePlatform();
+    if (platform) {
+      const info = platform.getProviderInfo();
+      return info.platform;
+    }
+
+    // Fallback detection
     const hostname = window.location.hostname;
     if (hostname.includes('chatgpt') || hostname.includes('openai')) {
       return 'chatgpt';
@@ -159,6 +167,8 @@ class ArborExtension {
       return 'gemini';
     } else if (hostname.includes('perplexity')) {
       return 'perplexity';
+    } else if (hostname.includes('claude')) {
+      return 'claude';
     }
     return 'chatgpt'; // default
   }
