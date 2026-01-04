@@ -3,6 +3,7 @@ import { useConversationStore } from '../../store/conversationStore';
 import TreeHeader from './TreeHeader';
 import TreeSearch from './TreeSearch';
 import TreeNode from './TreeNode';
+import ConfirmDialog from '../ConfirmDialog';
 
 interface TreeNodeWrapperProps {
   nodeId: string;
@@ -10,6 +11,7 @@ interface TreeNodeWrapperProps {
   expandedNodes: Set<string>;
   onToggleExpand: (nodeId: string) => void;
   searchQuery: string;
+  onDelete?: (nodeId: string) => void;
 }
 
 function TreeNodeWrapper({
@@ -18,6 +20,7 @@ function TreeNodeWrapper({
   expandedNodes,
   onToggleExpand,
   searchQuery,
+  onDelete,
 }: TreeNodeWrapperProps) {
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
 
@@ -46,6 +49,7 @@ function TreeNodeWrapper({
       hasChildren={hasChildren}
       onSelect={setCurrentNode}
       onToggleExpand={onToggleExpand}
+      onDelete={onDelete}
     >
       {childNodes.map((childNode) => (
         <TreeNodeWrapper
@@ -55,6 +59,7 @@ function TreeNodeWrapper({
           expandedNodes={expandedNodes}
           onToggleExpand={onToggleExpand}
           searchQuery={searchQuery}
+          onDelete={onDelete}
         />
       ))}
     </TreeNode>
@@ -66,9 +71,11 @@ interface ConversationTreeProps {
 }
 
 export default function ConversationTree({ onToggle }: ConversationTreeProps) {
-  const { tree, initializeNewTree } = useConversationStore();
+  const { tree, initializeNewTree, deleteNode } = useConversationStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
 
   // Auto-expand root node
   useEffect(() => {
@@ -93,6 +100,24 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
     initializeNewTree();
   };
 
+  const handleDelete = (nodeId: string) => {
+    setNodeToDelete(nodeId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (nodeToDelete) {
+      await deleteNode(nodeToDelete);
+      setDeleteConfirmOpen(false);
+      setNodeToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmOpen(false);
+    setNodeToDelete(null);
+  };
+
   if (!tree) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -102,20 +127,34 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <TreeHeader onNewChat={handleNewChat} onToggle={onToggle} />
-      <TreeSearch value={searchQuery} onChange={setSearchQuery} />
-      <div className="flex-1 overflow-y-auto">
-        {tree.rootNodeId && (
-          <TreeNodeWrapper
-            nodeId={tree.rootNodeId}
-            depth={0}
-            expandedNodes={expandedNodes}
-            onToggleExpand={handleToggleExpand}
-            searchQuery={searchQuery}
-          />
-        )}
+    <>
+      <div className="h-full flex flex-col">
+        <TreeHeader onNewChat={handleNewChat} onToggle={onToggle} />
+        <TreeSearch value={searchQuery} onChange={setSearchQuery} />
+        <div className="flex-1 overflow-y-auto">
+          {tree.rootNodeId && (
+            <TreeNodeWrapper
+              nodeId={tree.rootNodeId}
+              depth={0}
+              expandedNodes={expandedNodes}
+              onToggleExpand={handleToggleExpand}
+              searchQuery={searchQuery}
+              onDelete={handleDelete}
+            />
+          )}
+        </div>
       </div>
-    </div>
+
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Delete Node"
+        message="Are you sure you want to delete this node and all its children? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+    </>
   );
 }
