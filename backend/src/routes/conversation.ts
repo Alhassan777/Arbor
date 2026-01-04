@@ -2,30 +2,36 @@ import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 import {
-  generateResponse,
-  generateTitle,
-  generateSummary,
-  generateConnectionLabel,
-} from "../services/gemini";
+  getProviderService,
+  detectProvider,
+  validateApiKey,
+  getDefaultModel,
+} from "../services/providerFactory";
+import { AIProvider } from "../types/providers";
 import type { CreateBranchRequest, SendMessageRequest } from "../types";
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// Helper to normalize API key - treat empty strings as undefined to use .env fallback
-// Also validate that it looks like a valid Gemini API key (starts with "AIza" and is at least 30 chars)
-function getApiKey(headerValue: string | undefined): string | undefined {
+/**
+ * Helper to normalize API key - treat empty strings as undefined to use .env fallback
+ * Validates API key format for the specified provider
+ */
+function getApiKey(
+  headerValue: string | undefined,
+  provider: AIProvider
+): string | undefined {
   if (!headerValue) return undefined;
 
   const trimmed = headerValue.trim();
 
   // If empty or too short, ignore it
-  if (!trimmed || trimmed.length < 30) {
+  if (!trimmed || trimmed.length < 20) {
     return undefined;
   }
 
-  // Gemini API keys start with "AIza"
-  if (!trimmed.startsWith("AIza")) {
+  // Validate against provider-specific format
+  if (!validateApiKey(trimmed, provider)) {
     return undefined;
   }
 
@@ -113,8 +119,18 @@ router.post("/conversation/:id/message", async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body as SendMessageRequest;
-    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
+
+    // Detect provider from headers/model
+    const providerHeader = req.headers["x-provider"] as string | undefined;
     const model = req.headers["x-model"] as string | undefined;
+    const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
+
+    const detection = detectProvider(providerHeader, model, apiKeyHeader);
+    const provider = detection.provider;
+    const apiKey = getApiKey(apiKeyHeader, provider);
+
+    // Get the appropriate AI service
+    const aiService = getProviderService(provider);
 
     // Get the conversation node
     const node = await prisma.conversationNode.findUnique({
@@ -137,7 +153,7 @@ router.post("/conversation/:id/message", async (req, res) => {
 
     // Get AI response - include branch context if this is a branched conversation
     const allMessages = [...node.messages, userMessage];
-    const aiResponse = await generateResponse(
+    const aiResponse = await aiService.generateResponse(
       allMessages,
       node.summary || undefined,
       apiKey,
@@ -163,7 +179,7 @@ router.post("/conversation/:id/message", async (req, res) => {
       messageCount === 2 &&
       (node.title === "New Conversation" || node.title === "New Branch")
     ) {
-      const title = await generateTitle(
+      const title = await aiService.generateTitle(
         [...allMessages, assistantMessage],
         apiKey
       );
@@ -205,7 +221,18 @@ router.post("/conversation/:id/branch", async (req, res) => {
   try {
     const { id } = req.params;
     const { sourceMessageId, selectedText } = req.body as CreateBranchRequest;
-    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
+
+    // Detect provider from headers
+    const providerHeader = req.headers["x-provider"] as string | undefined;
+    const model = req.headers["x-model"] as string | undefined;
+    const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
+
+    const detection = detectProvider(providerHeader, model, apiKeyHeader);
+    const provider = detection.provider;
+    const apiKey = getApiKey(apiKeyHeader, provider);
+
+    // Get the appropriate AI service
+    const aiService = getProviderService(provider);
 
     // Get parent conversation
     const parentNode = await prisma.conversationNode.findUnique({
@@ -220,7 +247,7 @@ router.post("/conversation/:id/branch", async (req, res) => {
     // Generate summary of parent conversation
     let summary = null;
     if (parentNode.messages.length > 0) {
-      summary = await generateSummary(parentNode.messages, apiKey);
+      summary = await aiService.generateSummary(parentNode.messages, apiKey);
     }
 
     // Create system prompt with context
@@ -466,7 +493,18 @@ router.put("/conversation/:id/move", async (req, res) => {
 router.post("/conversation/:id/summarize", async (req, res) => {
   try {
     const { id } = req.params;
-    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
+
+    // Detect provider from headers
+    const providerHeader = req.headers["x-provider"] as string | undefined;
+    const model = req.headers["x-model"] as string | undefined;
+    const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
+
+    const detection = detectProvider(providerHeader, model, apiKeyHeader);
+    const provider = detection.provider;
+    const apiKey = getApiKey(apiKeyHeader, provider);
+
+    // Get the appropriate AI service
+    const aiService = getProviderService(provider);
 
     const node = await prisma.conversationNode.findUnique({
       where: { id },
@@ -477,7 +515,7 @@ router.post("/conversation/:id/summarize", async (req, res) => {
       return res.status(404).json({ error: "Conversation not found" });
     }
 
-    const summary = await generateSummary(node.messages, apiKey);
+    const summary = await aiService.generateSummary(node.messages, apiKey);
 
     await prisma.conversationNode.update({
       where: { id },
@@ -495,13 +533,24 @@ router.post("/conversation/:id/summarize", async (req, res) => {
 router.post("/ai/label-connection", async (req, res) => {
   try {
     const { prompt } = req.body;
-    const apiKey = getApiKey(req.headers["x-api-key"] as string | undefined);
+
+    // Detect provider from headers
+    const providerHeader = req.headers["x-provider"] as string | undefined;
+    const model = req.headers["x-model"] as string | undefined;
+    const apiKeyHeader = req.headers["x-api-key"] as string | undefined;
+
+    const detection = detectProvider(providerHeader, model, apiKeyHeader);
+    const provider = detection.provider;
+    const apiKey = getApiKey(apiKeyHeader, provider);
+
+    // Get the appropriate AI service
+    const aiService = getProviderService(provider);
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });
     }
 
-    const result = await generateConnectionLabel(prompt, apiKey);
+    const result = await aiService.generateConnectionLabel(prompt, apiKey);
     res.json(result);
   } catch (error) {
     console.error("Error generating connection label:", error);

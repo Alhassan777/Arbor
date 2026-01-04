@@ -72,8 +72,8 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   initializeNewTree: async (name?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const { apiKey, model } = useSettingsStore.getState();
-      const tree = await api.createConversation(apiKey, model, name);
+      const { provider, apiKey, model } = useSettingsStore.getState();
+      const tree = await api.createConversation(provider, apiKey, model, name);
       set({
         tree,
         currentNodeId: tree.rootNodeId,
@@ -137,9 +137,9 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     });
 
     try {
-      const { apiKey, model } = useSettingsStore.getState();
+      const { provider, apiKey, model } = useSettingsStore.getState();
       const { userMessage, assistantMessage, updatedTitle } =
-        await api.sendMessage(currentNodeId, content, apiKey, model);
+        await api.sendMessage(currentNodeId, content, provider, apiKey, model);
 
       // Replace optimistic message with real messages from backend
       const currentState = get();
@@ -254,7 +254,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     });
 
     try {
-      const { apiKey, model } = useSettingsStore.getState();
+      const { provider, apiKey, model } = useSettingsStore.getState();
       const {
         userMessage: backendUserMessage,
         assistantMessage,
@@ -262,6 +262,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       } = await api.sendMessage(
         currentNodeId,
         userMessage.content,
+        provider,
         apiKey,
         model
       );
@@ -329,13 +330,14 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
     set({ isLoading: true, error: null });
     try {
-      const { apiKey, model } = useSettingsStore.getState();
+      const { provider, apiKey, model } = useSettingsStore.getState();
       const newNode = await api.createBranch(
         currentNodeId,
         {
           sourceMessageId,
           selectedText,
         },
+        provider,
         apiKey,
         model
       );

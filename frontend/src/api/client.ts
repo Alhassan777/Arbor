@@ -7,8 +7,9 @@ import type {
 
 const API_BASE = "/api";
 
-function getHeaders(apiKey?: string, model?: string): HeadersInit {
+function getHeaders(provider?: string, apiKey?: string, model?: string): HeadersInit {
   const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (provider) headers["X-Provider"] = provider;
   if (apiKey) headers["X-API-Key"] = apiKey;
   if (model) headers["X-Model"] = model;
   return headers;
@@ -16,10 +17,10 @@ function getHeaders(apiKey?: string, model?: string): HeadersInit {
 
 export const api = {
   // Create a new root conversation
-  async createConversation(apiKey?: string, model?: string, name?: string): Promise<ConversationTree> {
+  async createConversation(provider?: string, apiKey?: string, model?: string, name?: string): Promise<ConversationTree> {
     const response = await fetch(`${API_BASE}/conversation`, {
       method: "POST",
-      headers: getHeaders(apiKey, model),
+      headers: getHeaders(provider, apiKey, model),
       body: JSON.stringify({ name }),
     });
     if (!response.ok) throw new Error("Failed to create conversation");
@@ -30,6 +31,7 @@ export const api = {
   async sendMessage(
     conversationId: string,
     content: string,
+    provider?: string,
     apiKey?: string,
     model?: string
   ): Promise<{
@@ -42,7 +44,7 @@ export const api = {
         `${API_BASE}/conversation/${conversationId}/message`,
         {
           method: "POST",
-          headers: getHeaders(apiKey, model),
+          headers: getHeaders(provider, apiKey, model),
           body: JSON.stringify({ content }),
         }
       );
@@ -84,6 +86,7 @@ export const api = {
   async createBranch(
     conversationId: string,
     data: CreateBranchRequest,
+    provider?: string,
     apiKey?: string,
     model?: string
   ): Promise<ConversationNode> {
@@ -91,7 +94,7 @@ export const api = {
       `${API_BASE}/conversation/${conversationId}/branch`,
       {
         method: "POST",
-        headers: getHeaders(apiKey, model),
+        headers: getHeaders(provider, apiKey, model),
         body: JSON.stringify(data),
       }
     );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSettingsStore } from '../store/settingsStore';
+import { useSettingsStore, PROVIDER_MODELS, type AIProvider } from '../store/settingsStore';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Icons } from './ui/Icons';
@@ -9,18 +9,47 @@ interface SettingsProps {
   onClose: () => void;
 }
 
+// Provider metadata for UI display
+const PROVIDER_INFO: Record<AIProvider, { name: string; keyPrefix: string; url: string }> = {
+  gemini: {
+    name: 'Google Gemini',
+    keyPrefix: 'AIza...',
+    url: 'https://aistudio.google.com/app/apikey',
+  },
+  claude: {
+    name: 'Anthropic Claude',
+    keyPrefix: 'sk-ant-...',
+    url: 'https://console.anthropic.com/settings/keys',
+  },
+  perplexity: {
+    name: 'Perplexity AI',
+    keyPrefix: 'pplx-...',
+    url: 'https://www.perplexity.ai/settings/api',
+  },
+};
+
 export default function Settings({ isOpen, onClose }: SettingsProps) {
-  const { apiKey, model, theme, setApiKey, setModel, toggleTheme } = useSettingsStore();
+  const { provider, apiKey, model, theme, setProvider, setApiKey, setModel, toggleTheme } = useSettingsStore();
+  const [localProvider, setLocalProvider] = useState(provider);
   const [localApiKey, setLocalApiKey] = useState(apiKey);
   const [localModel, setLocalModel] = useState(model);
   const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
+    setLocalProvider(provider);
     setLocalApiKey(apiKey);
     setLocalModel(model);
-  }, [apiKey, model, isOpen]);
+  }, [provider, apiKey, model, isOpen]);
+
+  const handleProviderChange = (newProvider: AIProvider) => {
+    setLocalProvider(newProvider);
+    // Update model to the first model of the new provider
+    const newDefaultModel = PROVIDER_MODELS[newProvider][0].value;
+    setLocalModel(newDefaultModel);
+  };
 
   const handleSave = () => {
+    setProvider(localProvider);
     setApiKey(localApiKey);
     setModel(localModel);
     onClose();
@@ -72,21 +101,40 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
               </button>
             </div>
 
+            {/* Provider Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                AI Provider
+              </label>
+              <select
+                value={localProvider}
+                onChange={(e) => handleProviderChange(e.target.value as AIProvider)}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="gemini">Google Gemini</option>
+                <option value="claude">Anthropic Claude</option>
+                <option value="perplexity">Perplexity AI</option>
+              </select>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                Choose your preferred AI provider. Each provider offers different models and capabilities.
+              </p>
+            </div>
+
             {/* API Key Section */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                Gemini API Key
+                {PROVIDER_INFO[localProvider].name} API Key
               </label>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                 Your API key is stored locally in your browser and is never sent to our servers.
                 Get your API key from{' '}
                 <a
-                  href="https://aistudio.google.com/app/apikey"
+                  href={PROVIDER_INFO[localProvider].url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
-                  Google AI Studio
+                  {PROVIDER_INFO[localProvider].name}
                 </a>
               </p>
               <div className="relative">
@@ -94,7 +142,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   type={showKey ? 'text' : 'password'}
                   value={localApiKey}
                   onChange={(e) => setLocalApiKey(e.target.value)}
-                  placeholder="AIza..."
+                  placeholder={PROVIDER_INFO[localProvider].keyPrefix}
                   className="w-full pr-12 font-mono text-sm"
                 />
                 <button
@@ -121,22 +169,15 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                 onChange={(e) => setLocalModel(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="gemini-2.5-flash">
-                  Gemini 2.5 Flash (Recommended - Latest & Fast)
-                </option>
-                <option value="gemini-1.5-flash">
-                  Gemini 1.5 Flash (Fast & Efficient)
-                </option>
-                <option value="gemini-1.5-pro">
-                  Gemini 1.5 Pro (Most Capable)
-                </option>
-                <option value="gemini-2.0-flash-exp">
-                  Gemini 2.0 Flash Experimental
-                </option>
+                {PROVIDER_MODELS[localProvider].map((modelOption) => (
+                  <option key={modelOption.value} value={modelOption.value}>
+                    {modelOption.label}
+                    {modelOption.description && ` - ${modelOption.description}`}
+                  </option>
+                ))}
               </select>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                Choose the AI model that best fits your needs. Flash offers the best balance of
-                speed and quality.
+                Choose the AI model that best fits your needs.
               </p>
             </div>
 
@@ -148,7 +189,7 @@ export default function Settings({ isOpen, onClose }: SettingsProps) {
                   <p className="font-medium mb-1">Privacy & Security</p>
                   <p>
                     Your API key is stored only in your browser's local storage and is sent directly
-                    to Google's servers. We never see or store your API key on our servers.
+                    to {PROVIDER_INFO[localProvider].name}'s servers. We never see or store your API key on our servers.
                   </p>
                 </div>
               </div>
