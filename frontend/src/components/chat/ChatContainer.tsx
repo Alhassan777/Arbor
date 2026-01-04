@@ -16,6 +16,7 @@ export default function ChatContainer() {
     currentNodeId,
     isLoading,
     sendMessage,
+    retryMessage,
     updateNodeTitle,
     deleteNode,
     createBranch,
@@ -45,6 +46,10 @@ export default function ChatContainer() {
     } catch (error) {
       addToast('Failed to copy', 'error');
     }
+  };
+
+  const handleRetry = async (errorMessageId: string) => {
+    await retryMessage(errorMessageId);
   };
 
   const handleTitleUpdate = async (newTitle: string) => {
@@ -104,6 +109,7 @@ export default function ChatContainer() {
         isLoading={isLoading}
         onBranch={handleBranch}
         onCopy={handleCopy}
+        onRetry={handleRetry}
       />
 
       <div className="bg-surface border-t border-border px-6 py-4">

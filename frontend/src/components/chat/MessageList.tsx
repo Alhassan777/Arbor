@@ -9,9 +9,10 @@ interface MessageListProps {
   isLoading: boolean;
   onBranch: (messageId: string, selectedText?: string) => void;
   onCopy: (content: string) => void;
+  onRetry?: (messageId: string) => void;
 }
 
-export default function MessageList({ messages, isLoading, onBranch, onCopy }: MessageListProps) {
+export default function MessageList({ messages, isLoading, onBranch, onCopy, onRetry }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function MessageList({ messages, isLoading, onBranch, onCopy }: M
           message={message}
           onBranch={onBranch}
           onCopy={onCopy}
+          onRetry={onRetry}
         />
       ))}
       {isLoading && <TypingIndicator />}

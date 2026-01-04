@@ -5,8 +5,8 @@ import {
   generateResponse,
   generateTitle,
   generateSummary,
+  generateConnectionLabel,
 } from "../services/gemini";
-import { generateConnectionLabel } from "../services/claude";
 import type { CreateBranchRequest, SendMessageRequest } from "../types";
 
 const router = Router();
@@ -31,6 +31,7 @@ function getApiKey(headerValue: string | undefined): string | undefined {
 
   return trimmed;
 }
+
 
 // Create new root conversation
 router.post("/conversation", async (req, res) => {
@@ -107,6 +108,8 @@ router.post("/conversation", async (req, res) => {
 
 // Send message and get AI response
 router.post("/conversation/:id/message", async (req, res) => {
+  let userMessage: any = null;
+
   try {
     const { id } = req.params;
     const { content } = req.body as SendMessageRequest;
@@ -124,7 +127,7 @@ router.post("/conversation/:id/message", async (req, res) => {
     }
 
     // Create user message
-    const userMessage = await prisma.message.create({
+    userMessage = await prisma.message.create({
       data: {
         role: "user",
         content,
@@ -179,7 +182,21 @@ router.post("/conversation/:id/message", async (req, res) => {
     });
   } catch (error) {
     console.error("Error sending message:", error);
-    res.status(500).json({ error: "Failed to send message" });
+
+    // Check if error has a status code from Gemini API
+    const statusCode = (error as any)?.status || 500;
+    const errorMessage = (error as any)?.message || "Failed to send message";
+
+    // Use appropriate status code (preserve 429, 401, 403, etc. from Gemini API)
+    // Include userMessage if it was created, so frontend can replace optimistic message
+    const errorResponse: any = { error: errorMessage };
+    if (userMessage) {
+      errorResponse.userMessage = userMessage;
+    }
+
+    res
+      .status(statusCode >= 400 && statusCode < 600 ? statusCode : 500)
+      .json(errorResponse);
   }
 });
 

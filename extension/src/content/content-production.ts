@@ -2322,7 +2322,7 @@ class ArborExtensionProduction {
     this.state.currentNodeId = this.state.trees[treeId]?.rootNodeId || null;
     await this.saveState();
 
-    this.showNotification(`Switched to tree: ${this.state.trees[treeId]?.title}`, 'success');
+    this.showNotification(`Switched to tree: ${this.state.trees[treeId]?.name}`, 'success');
     this.refresh();
   }
 

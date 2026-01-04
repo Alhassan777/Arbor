@@ -2,8 +2,16 @@ import Anthropic from '@anthropic-ai/sdk';
 import type { Message } from '../types';
 
 function getClient(apiKey?: string): Anthropic {
+  const finalApiKey = apiKey || process.env.ANTHROPIC_API_KEY;
+  
+  if (!finalApiKey) {
+    throw new Error(
+      "Anthropic API key is required. Set ANTHROPIC_API_KEY environment variable or provide it via x-anthropic-api-key header."
+    );
+  }
+  
   return new Anthropic({
-    apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
+    apiKey: finalApiKey,
   });
 }
 

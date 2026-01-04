@@ -1,8 +1,18 @@
-import { create } from 'zustand';
-import type { ConversationTree, ConversationNode, Message } from '../types';
-import { api } from '../api/client';
-import { useSettingsStore } from './settingsStore';
-import { generateConnectionLabel } from '../lib/ai/connectionLabeler';
+import { create } from "zustand";
+import type { ConversationTree, ConversationNode, Message } from "../types";
+import { api } from "../api/client";
+import { useSettingsStore } from "./settingsStore";
+import { generateConnectionLabel } from "../lib/ai/connectionLabeler";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
+
+// Helper function to extract and translate error messages
+function handleError(error: unknown): string {
+  const statusCode = (error as any)?.statusCode || 500;
+  const errorMessage =
+    (error as any)?.message ||
+    (error instanceof Error ? error.message : "Unknown error");
+  return getUserFriendlyErrorMessage(statusCode, errorMessage);
+}
 
 // Helper function to generate and save connection label
 async function generateAndSaveConnectionLabel(
@@ -13,17 +23,21 @@ async function generateAndSaveConnectionLabel(
 ): Promise<void> {
   try {
     // Generate label using AI
-    const labelData = await generateConnectionLabel(parentNode, childNode, selectedText);
+    const labelData = await generateConnectionLabel(
+      parentNode,
+      childNode,
+      selectedText
+    );
     labelData.treeId = treeId;
 
     // Save to backend
-    await fetch('/api/connection-label', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("/api/connection-label", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(labelData),
     });
   } catch (error) {
-    console.error('Error generating/saving connection label:', error);
+    console.error("Error generating/saving connection label:", error);
   }
 }
 
@@ -38,7 +52,11 @@ interface ConversationState {
   loadTree: (treeId: string) => Promise<void>;
   setCurrentNode: (nodeId: string) => void;
   sendMessage: (content: string) => Promise<void>;
-  createBranch: (sourceMessageId?: string, selectedText?: string) => Promise<string>;
+  retryMessage: (errorMessageId: string) => Promise<void>;
+  createBranch: (
+    sourceMessageId?: string,
+    selectedText?: string
+  ) => Promise<string>;
   updateNodeTitle: (nodeId: string, title: string) => Promise<void>;
   updateTreeName: (name: string) => Promise<void>;
   deleteNode: (nodeId: string) => Promise<void>;
@@ -59,12 +77,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({
         tree,
         currentNodeId: tree.rootNodeId,
-        isLoading: false
+        isLoading: false,
       });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false
+        error: handleError(error),
+        isLoading: false,
       });
     }
   },
@@ -76,12 +94,12 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({
         tree,
         currentNodeId: tree.rootNodeId,
-        isLoading: false
+        isLoading: false,
       });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false
+        error: handleError(error),
+        isLoading: false,
       });
     }
   },
@@ -97,7 +115,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     // Create optimistic user message
     const optimisticUserMessage: Message = {
       id: `temp-${Date.now()}-${Math.random()}`,
-      role: 'user',
+      role: "user",
       content: content,
       timestamp: new Date(),
     };
@@ -115,64 +133,212 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
     set({
       tree: { ...tree, nodes: updatedNodes },
       isLoading: true,
-      error: null
+      error: null,
     });
 
     try {
       const { apiKey, model } = useSettingsStore.getState();
-      const { userMessage, assistantMessage, updatedTitle } = await api.sendMessage(currentNodeId, content, apiKey, model);
+      const { userMessage, assistantMessage, updatedTitle } =
+        await api.sendMessage(currentNodeId, content, apiKey, model);
 
       // Replace optimistic message with real messages from backend
-      const finalNodes = { ...tree.nodes };
+      const currentState = get();
+      const finalNodes = { ...currentState.tree!.nodes };
       const finalNode = finalNodes[currentNodeId];
       if (finalNode) {
         // Remove the optimistic message and add the real ones
         const messagesWithoutOptimistic = finalNode.messages.filter(
-          msg => msg.id !== optimisticUserMessage.id
+          (msg) => msg.id !== optimisticUserMessage.id
         );
         finalNodes[currentNodeId] = {
           ...finalNode,
-          messages: [...messagesWithoutOptimistic, userMessage, assistantMessage],
+          messages: [
+            ...messagesWithoutOptimistic,
+            userMessage,
+            assistantMessage,
+          ],
           title: updatedTitle,
         };
       }
 
       set({
-        tree: { ...tree, nodes: finalNodes },
-        isLoading: false
+        tree: { ...currentState.tree!, nodes: finalNodes },
+        isLoading: false,
       });
-    } catch (error) {
-      // On error, remove the optimistic message
-      const errorNodes = { ...tree.nodes };
+    } catch (error: any) {
+      const userFriendlyMessage = handleError(error);
+
+      // Check if backend returned a saved userMessage (happens when error occurs after message is saved)
+      const savedUserMessage = error?.userMessage;
+
+      // Create an error assistant message
+      const errorAssistantMessage: Message = {
+        id: `error-${Date.now()}-${Math.random()}`,
+        role: "assistant",
+        content: userFriendlyMessage,
+        timestamp: new Date(),
+      };
+
+      // Keep the optimistic user message and add error as assistant message
+      const currentState = get();
+      const errorNodes = { ...currentState.tree!.nodes };
       const errorNode = errorNodes[currentNodeId];
       if (errorNode) {
+        // If backend returned a saved userMessage, replace optimistic with real one
+        const messagesWithoutOptimistic = errorNode.messages.filter(
+          (msg) => msg.id !== optimisticUserMessage.id
+        );
+
+        const finalMessages = savedUserMessage
+          ? [
+              ...messagesWithoutOptimistic,
+              savedUserMessage,
+              errorAssistantMessage,
+            ]
+          : [...errorNode.messages, errorAssistantMessage];
+
         errorNodes[currentNodeId] = {
           ...errorNode,
-          messages: errorNode.messages.filter(
-            msg => msg.id !== optimisticUserMessage.id
-          ),
+          messages: finalMessages,
         };
       }
 
       set({
-        tree: { ...tree, nodes: errorNodes },
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false
+        tree: { ...currentState.tree!, nodes: errorNodes },
+        error: userFriendlyMessage,
+        isLoading: false,
+      });
+    }
+  },
+
+  retryMessage: async (errorMessageId: string) => {
+    const { currentNodeId, tree } = get();
+    if (!currentNodeId || !tree) return;
+
+    const currentNode = tree.nodes[currentNodeId];
+    if (!currentNode) return;
+
+    // Find the error message index
+    const errorIndex = currentNode.messages.findIndex(
+      (msg) => msg.id === errorMessageId
+    );
+    if (errorIndex === -1) return;
+
+    // Find the last user message before the error
+    let userMessage: Message | null = null;
+    for (let i = errorIndex - 1; i >= 0; i--) {
+      if (currentNode.messages[i].role === "user") {
+        userMessage = currentNode.messages[i];
+        break;
+      }
+    }
+
+    if (!userMessage) return;
+
+    // Remove the error message from the conversation
+    const updatedMessages = currentNode.messages.filter(
+      (msg) => msg.id !== errorMessageId
+    );
+    const updatedNodes = {
+      ...tree.nodes,
+      [currentNodeId]: {
+        ...currentNode,
+        messages: updatedMessages,
+      },
+    };
+
+    set({
+      tree: { ...tree, nodes: updatedNodes },
+      isLoading: true,
+      error: null,
+    });
+
+    try {
+      const { apiKey, model } = useSettingsStore.getState();
+      const {
+        userMessage: backendUserMessage,
+        assistantMessage,
+        updatedTitle,
+      } = await api.sendMessage(
+        currentNodeId,
+        userMessage.content,
+        apiKey,
+        model
+      );
+
+      // Keep the original user message instead of the backend's new one to avoid duplicates
+      const currentState = get();
+      const finalNodes = { ...currentState.tree!.nodes };
+      const finalNode = finalNodes[currentNodeId];
+      if (finalNode) {
+        // Remove the backend's userMessage and keep our original one
+        const messagesWithoutBackendUser = finalNode.messages.filter(
+          (msg) => msg.id !== backendUserMessage.id
+        );
+
+        finalNodes[currentNodeId] = {
+          ...finalNode,
+          messages: [
+            ...messagesWithoutBackendUser.filter(
+              (msg) => msg.id !== userMessage.id
+            ),
+            userMessage, // Keep the original user message
+            assistantMessage,
+          ],
+          title: updatedTitle,
+        };
+      }
+
+      set({
+        tree: { ...currentState.tree!, nodes: finalNodes },
+        isLoading: false,
+      });
+    } catch (error: any) {
+      const userFriendlyMessage = handleError(error);
+
+      // Create an error assistant message
+      const errorAssistantMessage: Message = {
+        id: `error-${Date.now()}-${Math.random()}`,
+        role: "assistant",
+        content: userFriendlyMessage,
+        timestamp: new Date(),
+      };
+
+      // Add error message back, keeping the original user message
+      const currentState = get();
+      const errorNodes = { ...currentState.tree!.nodes };
+      const errorNode = errorNodes[currentNodeId];
+      if (errorNode) {
+        errorNodes[currentNodeId] = {
+          ...errorNode,
+          messages: [...errorNode.messages, errorAssistantMessage],
+        };
+      }
+
+      set({
+        tree: { ...currentState.tree!, nodes: errorNodes },
+        error: userFriendlyMessage,
+        isLoading: false,
       });
     }
   },
 
   createBranch: async (sourceMessageId?: string, selectedText?: string) => {
     const { currentNodeId, tree } = get();
-    if (!currentNodeId || !tree) return '';
+    if (!currentNodeId || !tree) return "";
 
     set({ isLoading: true, error: null });
     try {
       const { apiKey, model } = useSettingsStore.getState();
-      const newNode = await api.createBranch(currentNodeId, {
-        sourceMessageId,
-        selectedText,
-      }, apiKey, model);
+      const newNode = await api.createBranch(
+        currentNodeId,
+        {
+          sourceMessageId,
+          selectedText,
+        },
+        apiKey,
+        model
+      );
 
       // Add the new node to the tree
       const updatedNodes = { ...tree.nodes, [newNode.id]: newNode };
@@ -180,24 +346,29 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({
         tree: { ...tree, nodes: updatedNodes },
         currentNodeId: newNode.id,
-        isLoading: false
+        isLoading: false,
       });
 
       // Generate connection label in the background (non-blocking)
       if (tree.id) {
         const parentNode = tree.nodes[currentNodeId];
-        generateAndSaveConnectionLabel(parentNode, newNode, tree.id, selectedText).catch(
-          (err) => console.error('Failed to generate connection label:', err)
+        generateAndSaveConnectionLabel(
+          parentNode,
+          newNode,
+          tree.id,
+          selectedText
+        ).catch((err) =>
+          console.error("Failed to generate connection label:", err)
         );
       }
 
       return newNode.id;
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false
+        error: handleError(error),
+        isLoading: false,
       });
-      return '';
+      return "";
     }
   },
 
@@ -212,7 +383,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       set({ tree: { ...tree, nodes: updatedNodes } });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: handleError(error),
       });
     }
   },
@@ -242,7 +413,7 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       const updatedNodes = { ...tree.nodes };
       const removeNodeAndChildren = (id: string) => {
         delete updatedNodes[id];
-        Object.values(updatedNodes).forEach(node => {
+        Object.values(updatedNodes).forEach((node) => {
           if (node.parentId === id) {
             removeNodeAndChildren(node.id);
           }
@@ -251,15 +422,16 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
       removeNodeAndChildren(nodeId);
 
       // If we deleted the current node, switch to root
-      const newCurrentId = currentNodeId === nodeId ? tree.rootNodeId : currentNodeId;
+      const newCurrentId =
+        currentNodeId === nodeId ? tree.rootNodeId : currentNodeId;
 
       set({
         tree: { ...tree, nodes: updatedNodes },
-        currentNodeId: newCurrentId
+        currentNodeId: newCurrentId,
       });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: handleError(error),
       });
     }
   },

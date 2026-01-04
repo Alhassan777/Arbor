@@ -481,7 +481,7 @@ class ArborExtension {
 
     return `
       <div class="arbor-header">
-        <h2>🌳 ${currentTree.title}</h2>
+        <h2>🌳 ${currentTree.name}</h2>
         <button class="arbor-toggle-btn" id="toggle-sidebar">Hide</button>
       </div>
       <div class="arbor-content" id="tree-view">

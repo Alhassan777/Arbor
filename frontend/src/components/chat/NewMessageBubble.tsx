@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { GitBranch, Copy } from 'lucide-react';
+import { GitBranch, Copy, AlertTriangle, RotateCw } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/Tooltip';
 import MarkdownMessage from '../MarkdownMessage';
@@ -12,14 +12,16 @@ interface NewMessageBubbleProps {
   message: Message;
   onBranch: (messageId: string, selectedText?: string) => void;
   onCopy: (content: string) => void;
+  onRetry?: (messageId: string) => void;
 }
 
-export default function NewMessageBubble({ message, onBranch, onCopy }: NewMessageBubbleProps) {
+export default function NewMessageBubble({ message, onBranch, onCopy, onRetry }: NewMessageBubbleProps) {
   const [selectedText, setSelectedText] = useState('');
   const [showSelectionPopup, setShowSelectionPopup] = useState(false);
   const [popupPosition, setPopupPosition] = useState({ x: 0, y: 0 });
 
   const isUser = message.role === 'user';
+  const isError = message.id.startsWith('error-');
 
   const handleTextSelection = () => {
     if (isUser) return; // Only allow selection in AI messages
@@ -72,23 +74,54 @@ export default function NewMessageBubble({ message, onBranch, onCopy }: NewMessa
             'rounded-2xl px-4 py-3 transition-all duration-200',
             isUser
               ? 'bg-primary text-white rounded-br-md'
+              : isError
+              ? 'bg-red-50 dark:bg-red-950/30 border-2 border-red-300 dark:border-red-800 rounded-bl-md'
               : 'bg-surface border border-border rounded-bl-md'
           )}
           onMouseUp={handleTextSelection}
         >
+          {!isUser && isError && (
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-red-800 dark:text-red-300">Error</span>
+            </div>
+          )}
           {isUser ? (
             <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
           ) : (
-            <MarkdownMessage content={message.content} />
+            <div className={cn(isError && 'text-red-900 dark:text-red-200')}>
+              <MarkdownMessage content={message.content} />
+            </div>
           )}
 
           {/* Timestamp */}
           <div className="mt-2">
-            <span className={cn('text-xs', isUser ? 'text-white/70' : 'text-text-muted')}>
+            <span className={cn(
+              'text-xs',
+              isUser ? 'text-white/70' : isError ? 'text-red-600 dark:text-red-400' : 'text-text-muted'
+            )}>
               {formatRelativeTime(message.timestamp)}
             </span>
           </div>
         </div>
+
+        {/* Retry Button for Error Messages */}
+        {isError && onRetry && (
+          <div className="mt-2 flex justify-start">
+            <button
+              onClick={() => onRetry(message.id)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg',
+                'bg-red-100 dark:bg-red-900/50 hover:bg-red-200 dark:hover:bg-red-900/70',
+                'text-red-700 dark:text-red-300 text-sm font-medium',
+                'transition-colors border border-red-300 dark:border-red-700'
+              )}
+            >
+              <RotateCw className="h-4 w-4" />
+              Retry
+            </button>
+          </div>
+        )}
 
         {/* Branch Button (AI messages only, appears on hover) */}
         {!isUser && (

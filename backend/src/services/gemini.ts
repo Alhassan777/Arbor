@@ -80,3 +80,30 @@ export async function generateSummary(
   const response = await result.response;
   return response.text();
 }
+
+export async function generateConnectionLabel(
+  prompt: string,
+  apiKey?: string
+): Promise<{ type: string; label: string }> {
+  const client = getClient(apiKey);
+  const genModel = client.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const result = await genModel.generateContent(prompt);
+  const response = await result.response;
+  const text = response.text();
+
+  try {
+    // Try to parse JSON response
+    const parsed = JSON.parse(text);
+    return {
+      type: parsed.type || "extends",
+      label: parsed.label || "branch",
+    };
+  } catch (error) {
+    // If parsing fails, return default
+    return {
+      type: "extends",
+      label: "branch",
+    };
+  }
+}
