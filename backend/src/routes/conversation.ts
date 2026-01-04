@@ -33,8 +33,10 @@ function getApiKey(headerValue: string | undefined): string | undefined {
 }
 
 // Create new root conversation
-router.post("/conversation", async (_req, res) => {
+router.post("/conversation", async (req, res) => {
   try {
+    const { name } = req.body;
+
     // Use transaction to handle circular dependency between tree and node
     const result = await prisma.$transaction(async (tx) => {
       // First create the tree with a temporary rootNodeId (will be updated)
@@ -45,6 +47,7 @@ router.post("/conversation", async (_req, res) => {
       await tx.conversationTree.create({
         data: {
           id: treeId,
+          name: name || "New Tree",
           rootNodeId: tempRootNodeId, // Temporary, will be updated
         },
       });
@@ -84,6 +87,7 @@ router.post("/conversation", async (_req, res) => {
     // Format response
     const formattedTree = {
       id: result.id,
+      name: result.name,
       rootNodeId: result.rootNodeId,
       nodes: result.nodes.reduce((acc, node) => {
         acc[node.id] = {
@@ -271,6 +275,7 @@ router.get("/tree/:id", async (req, res) => {
     // Format response
     const formattedTree = {
       id: tree.id,
+      name: tree.name,
       rootNodeId: tree.rootNodeId,
       nodes: tree.nodes.reduce((acc, node) => {
         acc[node.id] = {
@@ -304,6 +309,28 @@ router.put("/conversation/:id", async (req, res) => {
   } catch (error) {
     console.error("Error updating conversation:", error);
     res.status(500).json({ error: "Failed to update conversation" });
+  }
+});
+
+// Update tree (e.g., name)
+router.put("/tree/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({ error: "Invalid tree name" });
+    }
+
+    const updatedTree = await prisma.conversationTree.update({
+      where: { id },
+      data: { name: name.trim() },
+    });
+
+    res.json(updatedTree);
+  } catch (error) {
+    console.error("Error updating tree:", error);
+    res.status(500).json({ error: "Failed to update tree" });
   }
 });
 

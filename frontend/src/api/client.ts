@@ -16,10 +16,11 @@ function getHeaders(apiKey?: string, model?: string): HeadersInit {
 
 export const api = {
   // Create a new root conversation
-  async createConversation(apiKey?: string, model?: string): Promise<ConversationTree> {
+  async createConversation(apiKey?: string, model?: string, name?: string): Promise<ConversationTree> {
     const response = await fetch(`${API_BASE}/conversation`, {
       method: 'POST',
       headers: getHeaders(apiKey, model),
+      body: JSON.stringify({ name }),
     });
     if (!response.ok) throw new Error('Failed to create conversation');
     return response.json();
@@ -73,6 +74,20 @@ export const api = {
       body: JSON.stringify(updates),
     });
     if (!response.ok) throw new Error('Failed to update conversation');
+    return response.json();
+  },
+
+  // Update tree (e.g., name)
+  async updateTree(
+    treeId: string,
+    name: string
+  ): Promise<{ id: string; name: string }> {
+    const response = await fetch(`${API_BASE}/tree/${treeId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!response.ok) throw new Error('Failed to update tree');
     return response.json();
   },
 

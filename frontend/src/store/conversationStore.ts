@@ -34,12 +34,13 @@ interface ConversationState {
   error: string | null;
 
   // Actions
-  initializeNewTree: () => Promise<void>;
+  initializeNewTree: (name?: string) => Promise<void>;
   loadTree: (treeId: string) => Promise<void>;
   setCurrentNode: (nodeId: string) => void;
   sendMessage: (content: string) => Promise<void>;
   createBranch: (sourceMessageId?: string, selectedText?: string) => Promise<string>;
   updateNodeTitle: (nodeId: string, title: string) => Promise<void>;
+  updateTreeName: (name: string) => Promise<void>;
   deleteNode: (nodeId: string) => Promise<void>;
   moveNode: (nodeId: string, newParentId: string | null) => Promise<void>;
 }
@@ -50,11 +51,11 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  initializeNewTree: async () => {
+  initializeNewTree: async (name?: string) => {
     set({ isLoading: true, error: null });
     try {
       const { apiKey, model } = useSettingsStore.getState();
-      const tree = await api.createConversation(apiKey, model);
+      const tree = await api.createConversation(apiKey, model, name);
       set({
         tree,
         currentNodeId: tree.rootNodeId,
@@ -209,6 +210,20 @@ export const useConversationStore = create<ConversationState>((set, get) => ({
 
       const updatedNodes = { ...tree.nodes, [nodeId]: updatedNode };
       set({ tree: { ...tree, nodes: updatedNodes } });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  },
+
+  updateTreeName: async (name: string) => {
+    const { tree } = get();
+    if (!tree) return;
+
+    try {
+      await api.updateTree(tree.id, name);
+      set({ tree: { ...tree, name } });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : 'Unknown error'
