@@ -705,6 +705,20 @@ class ArborExtensionProduction {
             ✏️ Edit Name
           </span>
         </div>
+        <div style="
+          background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+          padding: 10px 12px;
+          border-radius: 6px;
+          border-left: 3px solid #4a9eff;
+          margin-bottom: 12px;
+        ">
+          <div style="color: #4a9eff; font-size: 11px; font-weight: 600; margin-bottom: 4px; opacity: 0.8;">
+            TREE NAME
+          </div>
+          <div style="color: #fff; font-size: 14px; font-weight: 600;">
+            ${this.state.trees[this.state.currentTreeId].name}
+          </div>
+        </div>
         ${this.renderTreeNode(this.state.trees[this.state.currentTreeId].rootNodeId, this.state.trees[this.state.currentTreeId])}
       </div>
     ` : '';
