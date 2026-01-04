@@ -324,6 +324,100 @@ router.delete("/conversation/:id", async (req, res) => {
   }
 });
 
+// Move conversation node to a new parent
+router.put("/conversation/:id/move", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newParentId, newTreeId } = req.body;
+
+    // Validate the node exists
+    const node = await prisma.conversationNode.findUnique({
+      where: { id },
+      include: { tree: true },
+    });
+
+    if (!node) {
+      return res.status(404).json({ error: "Node not found" });
+    }
+
+    // Prevent moving root node
+    if (node.id === node.tree.rootNodeId) {
+      return res.status(400).json({ error: "Cannot move root node" });
+    }
+
+    // If newParentId is provided, validate it exists
+    if (newParentId) {
+      const newParent = await prisma.conversationNode.findUnique({
+        where: { id: newParentId },
+      });
+
+      if (!newParent) {
+        return res.status(404).json({ error: "New parent node not found" });
+      }
+
+      // Prevent circular reference - check if newParent is a descendant of node
+      let checkNode = newParent;
+      while (checkNode.parentId) {
+        if (checkNode.parentId === id) {
+          return res.status(400).json({
+            error: "Cannot move node to its own descendant"
+          });
+        }
+        const parent = await prisma.conversationNode.findUnique({
+          where: { id: checkNode.parentId },
+        });
+        if (!parent) break;
+        checkNode = parent;
+      }
+    }
+
+    // Determine the target treeId
+    const targetTreeId = newTreeId || (newParentId ?
+      (await prisma.conversationNode.findUnique({ where: { id: newParentId } }))?.treeId :
+      node.treeId);
+
+    if (!targetTreeId) {
+      return res.status(400).json({ error: "Invalid tree configuration" });
+    }
+
+    // Move the node (and all descendants will move with it due to the tree structure)
+    const updatedNode = await prisma.conversationNode.update({
+      where: { id },
+      data: {
+        parentId: newParentId,
+        treeId: targetTreeId,
+      },
+      include: {
+        messages: true,
+      },
+    });
+
+    // Update all descendants to the new treeId if tree changed
+    if (node.treeId !== targetTreeId) {
+      const updateDescendantsTreeId = async (nodeId: string) => {
+        const children = await prisma.conversationNode.findMany({
+          where: { parentId: nodeId },
+        });
+
+        for (const child of children) {
+          await prisma.conversationNode.update({
+            where: { id: child.id },
+            data: { treeId: targetTreeId },
+          });
+          await updateDescendantsTreeId(child.id);
+        }
+      };
+
+      await updateDescendantsTreeId(id);
+    }
+
+    res.json(updatedNode);
+  } catch (error) {
+    console.error("Error moving conversation:", error);
+    res.status(500).json({ error: "Failed to move conversation" });
+  }
+});
+
 // Generate summary for a conversation
 router.post("/conversation/:id/summarize", async (req, res) => {
   try {

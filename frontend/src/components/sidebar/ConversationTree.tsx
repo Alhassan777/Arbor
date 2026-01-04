@@ -12,6 +12,7 @@ interface TreeNodeWrapperProps {
   onToggleExpand: (nodeId: string) => void;
   searchQuery: string;
   onDelete?: (nodeId: string) => void;
+  onMove?: (nodeId: string, newParentId: string | null) => void;
 }
 
 function TreeNodeWrapper({
@@ -21,6 +22,7 @@ function TreeNodeWrapper({
   onToggleExpand,
   searchQuery,
   onDelete,
+  onMove,
 }: TreeNodeWrapperProps) {
   const { tree, currentNodeId, setCurrentNode } = useConversationStore();
 
@@ -39,6 +41,7 @@ function TreeNodeWrapper({
   const isActive = currentNodeId === nodeId;
   const isExpanded = expandedNodes.has(nodeId);
   const hasChildren = childNodes.length > 0;
+  const isRootNode = tree?.rootNodeId === nodeId;
 
   return (
     <TreeNode
@@ -47,9 +50,11 @@ function TreeNodeWrapper({
       isActive={isActive}
       isExpanded={isExpanded}
       hasChildren={hasChildren}
+      isRootNode={isRootNode}
       onSelect={setCurrentNode}
       onToggleExpand={onToggleExpand}
       onDelete={onDelete}
+      onMove={onMove}
     >
       {childNodes.map((childNode) => (
         <TreeNodeWrapper
@@ -60,6 +65,7 @@ function TreeNodeWrapper({
           onToggleExpand={onToggleExpand}
           searchQuery={searchQuery}
           onDelete={onDelete}
+          onMove={onMove}
         />
       ))}
     </TreeNode>
@@ -71,7 +77,7 @@ interface ConversationTreeProps {
 }
 
 export default function ConversationTree({ onToggle }: ConversationTreeProps) {
-  const { tree, initializeNewTree, deleteNode } = useConversationStore();
+  const { tree, initializeNewTree, deleteNode, moveNode } = useConversationStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -118,6 +124,10 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
     setNodeToDelete(null);
   };
 
+  const handleMove = async (nodeId: string, newParentId: string | null) => {
+    await moveNode(nodeId, newParentId);
+  };
+
   if (!tree) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -140,6 +150,7 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
               onToggleExpand={handleToggleExpand}
               searchQuery={searchQuery}
               onDelete={handleDelete}
+              onMove={handleMove}
             />
           )}
         </div>

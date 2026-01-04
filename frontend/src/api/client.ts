@@ -84,6 +84,24 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete conversation');
   },
 
+  // Move conversation node to a new parent
+  async moveNode(
+    conversationId: string,
+    newParentId: string | null,
+    newTreeId?: string
+  ): Promise<ConversationNode> {
+    const response = await fetch(`${API_BASE}/conversation/${conversationId}/move`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newParentId, newTreeId }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to move node' }));
+      throw new Error(error.error || 'Failed to move node');
+    }
+    return response.json();
+  },
+
   // Generate summary for a conversation
   async summarizeConversation(conversationId: string): Promise<string> {
     const response = await fetch(`${API_BASE}/conversation/${conversationId}/summarize`, {
