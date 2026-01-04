@@ -28,7 +28,7 @@ export default function AppLayout({
   onToggleRightSidebar,
   isAnnotateMode,
   onToggleAnnotateMode,
-  excalidrawOverlay,
+  excalidrawOverlay: _excalidrawOverlay,
 }: AppLayoutProps) {
   return (
     <div className="flex h-screen bg-midnight-soil overflow-hidden relative">

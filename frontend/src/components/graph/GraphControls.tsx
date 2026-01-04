@@ -12,15 +12,15 @@ export default function GraphControls({ isLocked, onToggleLock }: GraphControlsP
   const { zoomIn, zoomOut, fitView } = useReactFlow();
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
-      <div className="flex gap-1 bg-surface border border-border rounded-full px-2 py-1 shadow-lg">
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 animate-slide-up">
+      <div className="flex items-center gap-2 bg-gradient-to-br from-forest-floor to-undergrowth backdrop-blur-md border border-branch rounded-2xl px-3 py-2 shadow-dappled">
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={() => zoomIn()}
-              className="p-2 rounded-full hover:bg-surface-hover transition-colors"
+              className="group p-2.5 rounded-xl hover:bg-canopy/10 transition-all duration-300 active:scale-95"
             >
-              <ZoomIn className="h-4 w-4 text-text-primary" />
+              <ZoomIn className="h-4 w-4 text-birch group-hover:text-canopy transition-colors" />
             </button>
           </TooltipTrigger>
           <TooltipContent>Zoom in</TooltipContent>
@@ -30,9 +30,9 @@ export default function GraphControls({ isLocked, onToggleLock }: GraphControlsP
           <TooltipTrigger asChild>
             <button
               onClick={() => zoomOut()}
-              className="p-2 rounded-full hover:bg-surface-hover transition-colors"
+              className="group p-2.5 rounded-xl hover:bg-canopy/10 transition-all duration-300 active:scale-95"
             >
-              <ZoomOut className="h-4 w-4 text-text-primary" />
+              <ZoomOut className="h-4 w-4 text-birch group-hover:text-canopy transition-colors" />
             </button>
           </TooltipTrigger>
           <TooltipContent>Zoom out</TooltipContent>
@@ -42,29 +42,31 @@ export default function GraphControls({ isLocked, onToggleLock }: GraphControlsP
           <TooltipTrigger asChild>
             <button
               onClick={() => fitView({ padding: 0.2 })}
-              className="p-2 rounded-full hover:bg-surface-hover transition-colors"
+              className="group p-2.5 rounded-xl hover:bg-canopy/10 transition-all duration-300 active:scale-95"
             >
-              <Maximize2 className="h-4 w-4 text-text-primary" />
+              <Maximize2 className="h-4 w-4 text-birch group-hover:text-canopy transition-colors" />
             </button>
           </TooltipTrigger>
           <TooltipContent>Fit view</TooltipContent>
         </Tooltip>
 
-        <div className="w-px bg-border my-1" />
+        <div className="w-px h-6 bg-branch" />
 
         <Tooltip>
           <TooltipTrigger asChild>
             <button
               onClick={onToggleLock}
               className={cn(
-                'p-2 rounded-full transition-colors',
-                isLocked ? 'bg-primary-muted' : 'hover:bg-surface-hover'
+                'p-2.5 rounded-xl transition-all duration-300 active:scale-95',
+                isLocked
+                  ? 'bg-canopy/20 shadow-glow-canopy'
+                  : 'hover:bg-canopy/10'
               )}
             >
               {isLocked ? (
-                <Lock className="h-4 w-4 text-primary" />
+                <Lock className="h-4 w-4 text-canopy" />
               ) : (
-                <Unlock className="h-4 w-4 text-text-primary" />
+                <Unlock className="h-4 w-4 text-birch hover:text-canopy transition-colors" />
               )}
             </button>
           </TooltipTrigger>

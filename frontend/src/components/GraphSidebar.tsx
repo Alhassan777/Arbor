@@ -1,4 +1,4 @@
-import { useConversationStore } from '../store/conversationStore';
+// import { useConversationStore } from '../store/conversationStore';
 import { Icons } from './ui/Icons';
 // import { ExcalidrawCanvas } from './graph/ExcalidrawCanvas';
 
@@ -9,7 +9,7 @@ interface GraphSidebarProps {
 }
 
 export default function GraphSidebar({ isCollapsed, onToggle, onOpenSettings }: GraphSidebarProps) {
-  const { tree, currentNodeId, setCurrentNode } = useConversationStore();
+  // const { tree, currentNodeId, setCurrentNode } = useConversationStore();
 
   if (isCollapsed) {
     return (

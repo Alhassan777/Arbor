@@ -87,12 +87,12 @@ export default function TreeNode({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          'w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-all duration-150 group relative',
-          'hover:bg-surface-hover',
-          isActive && 'bg-primary-muted border-l-2 border-primary',
-          isDragging && 'opacity-50',
-          isDropTarget && 'bg-primary-muted/50 border-l-2 border-primary',
-          !isRootNode && onMove && 'cursor-move'
+          'w-full flex items-center gap-2 px-3 py-2.5 text-sm transition-all duration-300 group relative',
+          'hover:bg-undergrowth/50 rounded-lg mx-2',
+          isActive && 'bg-gradient-to-r from-canopy/15 to-transparent border-l-[3px] border-canopy shadow-sm',
+          isDragging && 'opacity-40 scale-95',
+          isDropTarget && 'bg-canopy/20 border-l-[3px] border-canopy ring-2 ring-canopy/30',
+          !isRootNode && onMove && 'cursor-grab active:cursor-grabbing'
         )}
         style={{ paddingLeft: `${indent + 12}px` }}
       >
@@ -106,12 +106,13 @@ export default function TreeNode({
                 e.stopPropagation();
                 onToggleExpand(node.id);
               }}
-              className="p-0.5 hover:bg-surface-hover rounded transition-all flex-shrink-0"
+              className="p-1 hover:bg-canopy/10 rounded-lg transition-all flex-shrink-0 group/chevron"
             >
               <ChevronRight
                 className={cn(
-                  'h-3 w-3 text-text-muted transition-transform duration-200',
-                  isExpanded && 'rotate-90'
+                  'h-3.5 w-3.5 transition-all duration-300',
+                  isExpanded && 'rotate-90',
+                  isActive ? 'text-canopy' : 'text-lichen group-hover/chevron:text-canopy'
                 )}
               />
             </button>
@@ -119,17 +120,19 @@ export default function TreeNode({
 
           {!hasChildren && <div className="w-4 flex-shrink-0" />}
 
-          <Icon
+          <div
             className={cn(
-              'h-4 w-4 flex-shrink-0',
-              isActive ? 'text-primary' : 'text-text-muted'
+              'flex-shrink-0 p-1.5 rounded-lg transition-all duration-300',
+              isActive ? 'bg-canopy/20 text-canopy' : 'bg-undergrowth text-lichen group-hover:bg-canopy/10 group-hover:text-canopy'
             )}
-          />
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </div>
 
           <span
             className={cn(
-              'flex-1 truncate font-medium text-left',
-              isActive ? 'text-primary' : 'text-text-primary'
+              'flex-1 truncate font-semibold text-left transition-colors',
+              isActive ? 'text-canopy' : 'text-birch group-hover:text-parchment'
             )}
             title={node.title}
           >
@@ -137,33 +140,39 @@ export default function TreeNode({
           </span>
 
           {node.messages.length > 0 && (
-            <span className="text-xs text-text-muted flex-shrink-0 bg-surface px-1.5 py-0.5 rounded">
+            <span
+              className={cn(
+                'text-xs flex-shrink-0 px-2 py-1 rounded-full font-medium transition-all',
+                isActive
+                  ? 'bg-canopy/20 text-canopy border border-canopy/30'
+                  : 'bg-undergrowth text-lichen border border-branch group-hover:border-lichen'
+              )}
+            >
               {node.messages.length}
             </span>
           )}
         </button>
 
         {onDelete && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 flex-shrink-0">
             <Menu
               trigger={
                 <button
-                  className="p-1 hover:bg-surface-hover rounded transition-colors"
+                  className="p-1.5 hover:bg-canopy/10 rounded-lg transition-all duration-300 active:scale-95 group/menu"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <Icons.MoreVertical className="h-4 w-4 text-text-muted" />
+                  <Icons.MoreVertical className="h-4 w-4 text-lichen group-hover/menu:text-canopy transition-colors" />
                 </button>
               }
             >
               <MenuItem
-                onClick={(e) => {
-                  e?.stopPropagation();
+                onClick={() => {
                   onDelete(node.id);
                 }}
               >
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <div className="flex items-center gap-2 text-amber-sap hover:text-berry transition-colors">
                   <Icons.Trash className="h-4 w-4" />
-                  <span>Delete</span>
+                  <span className="font-medium">Delete</span>
                 </div>
               </MenuItem>
             </Menu>

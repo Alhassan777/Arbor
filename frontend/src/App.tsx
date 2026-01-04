@@ -12,7 +12,7 @@ import Toast from './components/Toast';
 import { TooltipProvider } from './components/ui/Tooltip';
 
 function App() {
-  const { initializeNewTree, tree, currentNodeId, setCurrentNode } = useConversationStore();
+  const { initializeNewTree, tree } = useConversationStore();
   const { toasts, removeToast } = useToastStore();
   const { apiKey } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
