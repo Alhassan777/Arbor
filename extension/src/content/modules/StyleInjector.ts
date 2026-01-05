@@ -158,6 +158,69 @@ export class StyleInjector {
         font-size: 10px;
         color: #999;
       }
+
+      /* Sidebar tree node delete button */
+      .tree-node:hover .delete-node-btn {
+        opacity: 1 !important;
+      }
+
+      .delete-node-btn:hover {
+        background: rgba(239, 68, 68, 0.2) !important;
+        border-color: rgba(239, 68, 68, 0.5) !important;
+        transform: scale(1.1);
+      }
+
+      .delete-node-btn:active {
+        transform: scale(0.95);
+      }
+
+      /* Graph visualization header buttons */
+      .zoom-control-btn {
+        position: relative;
+      }
+
+      .zoom-control-btn:hover {
+        background: #252a28 !important;
+        color: #e8efe9 !important;
+        border-color: #3a4540 !important;
+        transform: translateY(-1px);
+      }
+
+      .zoom-control-btn:active {
+        transform: translateY(0);
+        background: #1a1f1d !important;
+      }
+
+      #close-graph-btn:hover {
+        background: #252a28 !important;
+        color: #e8efe9 !important;
+        border-color: #3a4540 !important;
+        transform: translateY(-1px);
+      }
+
+      #close-graph-btn:active {
+        transform: translateY(0);
+        background: #1a1f1d !important;
+      }
+
+      /* Ensure buttons maintain size on mobile/small screens */
+      @media (max-width: 500px) {
+        #arbor-graph-container .zoom-control-btn,
+        #arbor-graph-container #close-graph-btn {
+          min-width: 28px;
+          min-height: 28px;
+          font-size: 12px;
+        }
+
+        #arbor-graph-container #zoom-level {
+          min-width: 40px;
+          font-size: 11px;
+        }
+
+        #arbor-graph-container #close-graph-btn span {
+          display: none;
+        }
+      }
     `;
   }
 }

@@ -333,27 +333,7 @@ class ArborExtension {
         break;
 
       case "delete":
-        if (node.id === tree.rootNodeId) {
-          this.showNotification(
-            "Cannot delete root node! Delete the tree instead.",
-            "error"
-          );
-          return;
-        }
-
-        if (
-          confirm(
-            `Delete "${node.title}" and all its children? This cannot be undone.`
-          )
-        ) {
-          await this.nodeManager.deleteNode(
-            nodeId,
-            tree,
-            this.state.currentTreeId
-          );
-          this.showNotification("Node deleted! 🗑️", "success");
-          this.refresh();
-        }
+        await this.deleteNodeFromTree(nodeId);
         break;
     }
   }
@@ -385,7 +365,16 @@ class ArborExtension {
         await this.selectTree(data);
         break;
       case "addChatToTree":
-        await this.addChatToTree(parseInt(data));
+        await this.addChatToTree(data); // data is now chatUrl
+        break;
+      case "editTreeName":
+        await this.editTreeName();
+        break;
+      case "deleteTree":
+        await this.deleteTree();
+        break;
+      case "deleteNode":
+        await this.deleteNodeFromTree(data);
         break;
     }
   }
@@ -436,14 +425,168 @@ class ArborExtension {
     this.refresh();
   }
 
-  private async addChatToTree(chatIndex: number) {
+  private async editTreeName() {
+    if (!this.state.currentTreeId) {
+      this.showNotification("No tree selected", "error");
+      return;
+    }
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    if (!tree) return;
+
+    const newName = prompt("Enter new tree name:", tree.name || "Unnamed Tree");
+    if (!newName || newName.trim() === "") return;
+
+    await this.treeManager.renameTree(
+      this.state.currentTreeId,
+      newName.trim(),
+      this.state.trees
+    );
+
+    await this.saveState();
+    this.showNotification(`Tree renamed to "${newName}"! ✏️`, "success");
+    this.refresh();
+  }
+
+  private async deleteTree() {
+    if (!this.state.currentTreeId) {
+      this.showNotification("No tree selected", "error");
+      return;
+    }
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    if (!tree) {
+      this.showNotification("Tree not found", "error");
+      return;
+    }
+
+    const treeName = tree.name || "Unnamed Tree";
+    const nodeCount = Object.keys(tree.nodes).length;
+
+    if (
+      !confirm(
+        `Delete "${treeName}"?\n\nThis will permanently delete:\n• The entire tree\n• All ${nodeCount} node${
+          nodeCount !== 1 ? "s" : ""
+        } and their connections\n\nThis action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const result = await this.treeManager.deleteTree(
+      this.state.currentTreeId,
+      this.state.trees
+    );
+
+    if (!result.success) {
+      this.showNotification(
+        `Failed to delete tree: ${result.error || "Unknown error"}`,
+        "error"
+      );
+      return;
+    }
+
+    // Update state to next tree or clear if none
+    this.state.currentTreeId = result.nextTreeId;
+    this.state.currentNodeId = result.nextTreeId
+      ? this.state.trees[result.nextTreeId]?.rootNodeId || null
+      : null;
+
+    await this.saveState();
+    this.showNotification(`Tree "${treeName}" deleted! 🗑️`, "success");
+    this.refresh();
+  }
+
+  private async deleteNodeFromTree(nodeId: string) {
+    if (!this.state.currentTreeId) {
+      this.showNotification("No tree selected", "error");
+      return;
+    }
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const node = tree?.nodes[nodeId];
+
+    if (!node) {
+      this.showNotification("Node not found", "error");
+      return;
+    }
+
+    // Prevent deleting root node
+    if (nodeId === tree.rootNodeId) {
+      this.showNotification(
+        "Cannot delete root node! Delete the tree instead.",
+        "error"
+      );
+      return;
+    }
+
+    // Count descendants
+    const countDescendants = (id: string): number => {
+      const n = tree.nodes[id];
+      if (!n) return 0;
+      let count = 1; // Count self
+      for (const childId of n.children) {
+        count += countDescendants(childId);
+      }
+      return count;
+    };
+
+    const descendantCount = countDescendants(nodeId);
+    const willDeleteCount =
+      descendantCount > 1 ? `${descendantCount} nodes` : "1 node";
+
+    if (
+      !confirm(
+        `Delete "${node.title}"?\n\nThis will permanently delete:\n• ${willDeleteCount} (including all children)\n• All connections to this branch\n\nThis action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    const result = await this.nodeManager.deleteNode(
+      nodeId,
+      tree,
+      this.state.currentTreeId
+    );
+
+    if (!result.success) {
+      this.showNotification(
+        `Failed to delete node: ${result.error || "Unknown error"}`,
+        "error"
+      );
+      return;
+    }
+
+    // Update current node if it was deleted
+    if (this.state.currentNodeId === nodeId) {
+      this.state.currentNodeId = tree.rootNodeId;
+      await this.saveState();
+    }
+
+    this.showNotification("Node deleted! 🗑️", "success");
+    this.refresh();
+  }
+
+  private async addChatToTree(chatUrl: string) {
     if (!this.state.currentTreeId) {
       this.showNotification("No active tree selected", "error");
       return;
     }
 
-    const chat = this.availableChats[chatIndex];
-    if (!chat) return;
+    // Find the chat by URL in availableChats
+    const chat = this.availableChats.find((c) => c.url === chatUrl);
+    if (!chat) {
+      this.showNotification("Chat not found", "error");
+      return;
+    }
+
+    // Check if chat is already tracked
+    const untrackedChats = this.getUntrackedChats();
+    const isUntracked = untrackedChats.some((c) => c.url === chatUrl);
+    if (!isUntracked) {
+      this.showNotification("This chat is already in a tree", "error");
+      return;
+    }
 
     const tree = this.state.trees[this.state.currentTreeId];
     await this.nodeManager.createNode(

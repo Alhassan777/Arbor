@@ -183,9 +183,14 @@ export class SidebarRenderer {
           <div style="color: #a0a0a0; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">
             📊 Current Tree
           </div>
-          <span id="tree-title-editable" style="color: #2dd4a7; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500;" title="Click to edit">
-            <span style="font-size: 12px;">✏️</span> Edit Name
-          </span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span id="tree-title-editable" style="color: #2dd4a7; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500;" title="Click to edit">
+              <span style="font-size: 12px;">✏️</span> Edit Name
+            </span>
+            <span id="tree-delete-btn" style="color: #ef4444; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px; font-weight: 500;" title="Delete tree">
+              <span style="font-size: 12px;">🗑️</span> Delete
+            </span>
+          </div>
         </div>
         <div style="margin-bottom: 12px; padding: 12px; background: rgba(45, 212, 167, 0.05); border-radius: 8px; border: 1px solid rgba(45, 212, 167, 0.2);">
           <div style="color: #2dd4a7; font-size: 11px; font-weight: 600; margin-bottom: 4px; opacity: 0.8;">
@@ -210,6 +215,7 @@ export class SidebarRenderer {
 
     const indent = depth * 16;
     const hasChildren = node.children.length > 0;
+    const isRootNode = nodeId === tree.rootNodeId;
     const platformEmoji = {
       chatgpt: "🤖",
       gemini: "✨",
@@ -226,20 +232,44 @@ export class SidebarRenderer {
         cursor: pointer;
         border-left: 3px solid #2dd4a7;
         transition: all 0.2s ease;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
       ">
-        <div style="font-size: 13px; font-weight: 600; color: #e8efe9; margin-bottom: 4px;">
-          ${platformEmoji} ${node.title}
+        <div style="flex: 1;">
+          <div style="font-size: 13px; font-weight: 600; color: #e8efe9; margin-bottom: 4px;">
+            ${platformEmoji} ${node.title}
+            ${isRootNode ? ' <span style="font-size: 10px; color: #6a7570;">(Root)</span>' : ''}
+          </div>
+          <div style="font-size: 11px; color: #9caba3;">
+            ${
+              hasChildren
+                ? `${node.children.length} branch${
+                    node.children.length !== 1 ? "es" : ""
+                  }`
+                : "Leaf node"
+            }
+            ${node.connectionLabel ? ` • ${node.connectionLabel}` : ""}
+          </div>
         </div>
-        <div style="font-size: 11px; color: #9caba3;">
-          ${
-            hasChildren
-              ? `${node.children.length} branch${
-                  node.children.length !== 1 ? "es" : ""
-                }`
-              : "Leaf node"
-          }
-          ${node.connectionLabel ? ` • ${node.connectionLabel}` : ""}
-        </div>
+        ${
+          !isRootNode
+            ? `<button class="delete-node-btn" data-node-id="${nodeId}" style="
+          padding: 4px 8px;
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 10px;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          opacity: 0;
+          pointer-events: auto;
+        " title="Delete node">🗑️</button>`
+            : ""
+        }
       </div>
     `;
 

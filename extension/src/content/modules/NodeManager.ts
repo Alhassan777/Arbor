@@ -41,31 +41,59 @@ export class NodeManager {
     nodeId: string,
     tree: ChatTree,
     treeId: string
-  ): Promise<void> {
+  ): Promise<{ success: boolean; error?: string }> {
     const node = tree.nodes[nodeId];
-    if (!node) return;
-
-    // Recursively delete all descendants
-    const deleteDescendants = async (id: string) => {
-      const n = tree.nodes[id];
-      if (!n) return;
-
-      for (const childId of n.children) {
-        await deleteDescendants(childId);
-      }
-
-      await db.deleteNode(id);
-      delete tree.nodes[id];
-    };
-
-    // Remove from parent's children array
-    if (node.parentId && tree.nodes[node.parentId]) {
-      const parent = tree.nodes[node.parentId];
-      parent.children = parent.children.filter((id) => id !== nodeId);
+    if (!node) {
+      return { success: false, error: "Node not found" };
     }
 
-    await deleteDescendants(nodeId);
-    await db.saveTree(tree);
+    // Prevent deleting root node (delete the tree instead)
+    if (nodeId === tree.rootNodeId) {
+      return {
+        success: false,
+        error: "Cannot delete root node. Delete the tree instead.",
+      };
+    }
+
+    try {
+      // Recursively delete all descendants
+      const deleteDescendants = async (id: string) => {
+        const n = tree.nodes[id];
+        if (!n) return;
+
+        // Delete all children first
+        for (const childId of [...n.children]) {
+          await deleteDescendants(childId);
+        }
+
+        // Delete the node from database
+        await db.deleteNode(id);
+        delete tree.nodes[id];
+      };
+
+      // Remove from parent's children array
+      if (node.parentId && tree.nodes[node.parentId]) {
+        const parent = tree.nodes[node.parentId];
+        parent.children = parent.children.filter((id) => id !== nodeId);
+        parent.updatedAt = new Date().toISOString();
+        await db.saveNode(parent, treeId);
+      }
+
+      // Delete the node and all its descendants
+      await deleteDescendants(nodeId);
+
+      // Update tree timestamp
+      tree.updatedAt = new Date().toISOString();
+      await db.saveTree(tree);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting node:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 
   async updateNodePosition(

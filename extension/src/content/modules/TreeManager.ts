@@ -44,21 +44,48 @@ export class TreeManager {
   async deleteTree(
     treeId: string,
     trees: Record<string, ChatTree>
-  ): Promise<string | null> {
+  ): Promise<{ success: boolean; nextTreeId: string | null; error?: string }> {
     const tree = trees[treeId];
-    if (!tree) return null;
-
-    // Delete all nodes
-    for (const nodeId of Object.keys(tree.nodes)) {
-      await db.deleteNode(nodeId);
+    if (!tree) {
+      return { success: false, nextTreeId: null, error: "Tree not found" };
     }
 
-    await db.deleteTree(treeId);
-    delete trees[treeId];
+    try {
+      // Recursively delete all nodes starting from root
+      const deleteNodeRecursive = async (nodeId: string) => {
+        const node = tree.nodes[nodeId];
+        if (!node) return;
 
-    // Return next tree ID if available
-    const remainingTrees = Object.keys(trees);
-    return remainingTrees.length > 0 ? remainingTrees[0] : null;
+        // Delete all children first
+        for (const childId of [...node.children]) {
+          await deleteNodeRecursive(childId);
+        }
+
+        // Delete the node from database
+        await db.deleteNode(nodeId);
+        delete tree.nodes[nodeId];
+      };
+
+      // Delete all nodes in the tree
+      await deleteNodeRecursive(tree.rootNodeId);
+
+      // Delete the tree from database
+      await db.deleteTree(treeId);
+      delete trees[treeId];
+
+      // Return next tree ID if available
+      const remainingTrees = Object.keys(trees);
+      const nextTreeId = remainingTrees.length > 0 ? remainingTrees[0] : null;
+
+      return { success: true, nextTreeId };
+    } catch (error) {
+      console.error("Error deleting tree:", error);
+      return {
+        success: false,
+        nextTreeId: null,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
   }
 
   async renameTree(

@@ -53,9 +53,31 @@ export class SidebarListeners {
       item.addEventListener("click", (e) => {
         const target = e.target as HTMLElement;
         if (target.classList.contains("add-to-tree-btn")) {
-          this.onSidebarAction("addChatToTree", chatIndex);
+          // Use chat URL instead of index to ensure correct chat is added
+          this.onSidebarAction("addChatToTree", chatUrl);
         } else if (chatUrl) {
           window.location.href = chatUrl;
+        }
+      });
+    });
+
+    // Edit tree name button
+    document.getElementById("tree-title-editable")?.addEventListener("click", () => {
+      this.onSidebarAction("editTreeName");
+    });
+
+    // Delete tree button
+    document.getElementById("tree-delete-btn")?.addEventListener("click", () => {
+      this.onSidebarAction("deleteTree");
+    });
+
+    // Delete node buttons (in sidebar tree view)
+    document.querySelectorAll(".delete-node-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation(); // Prevent triggering node click
+        const nodeId = (btn as HTMLElement).dataset.nodeId;
+        if (nodeId) {
+          this.onSidebarAction("deleteNode", nodeId);
         }
       });
     });
