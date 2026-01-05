@@ -1,5 +1,6 @@
 import type { ChatTree, ChatNode, ConnectionType } from "../../types";
 import { db } from "../db";
+import { ConnectionLabelDialog } from "./ConnectionLabelDialog";
 
 export class ConnectionLabelsManager {
   async editConnectionLabel(
@@ -14,19 +15,13 @@ export class ConnectionLabelsManager {
 
     if (!childNode || !parentNode) return;
 
-    const currentLabel = childNode.connectionLabel || "none";
-
-    // Show clear dialog with parent → child context
-    const message =
-      `🏷️ Label Connection\n\n` +
-      `From: "${parentNode.title}"\n` +
-      `  ↓\n` +
-      `To: "${childNode.title}"\n\n` +
-      `Options: deepens, explores, contrasts, examples, applies, questions, extends, summarizes, custom\n\n` +
-      `Current label: ${currentLabel}\n\n` +
-      `Enter new label:`;
-
-    const label = prompt(message, currentLabel);
+    // Show custom dialog instead of browser prompt
+    const label = await ConnectionLabelDialog.show({
+      parentTitle: parentNode.title,
+      childTitle: childNode.title,
+      currentLabel: childNode.connectionLabel || null,
+      allowCustom: true,
+    });
 
     if (!label) return;
 

@@ -17,7 +17,9 @@ import { NodeInteractions } from "./modules/NodeInteractions";
 import { ChatDetector } from "./modules/ChatDetector";
 import { UIInjector } from "./modules/UIInjector";
 import { GraphPanZoom } from "./modules/GraphPanZoom";
-import type { ExtensionState, ChatTree } from "../types";
+import { BranchContextManager } from "./modules/BranchContextManager";
+import { BranchConnectionTypeDialog } from "./modules/BranchConnectionTypeDialog";
+import type { ExtensionState, ChatTree, ConnectionType } from "../types";
 import type { AvailableChat } from "./modules/ChatDetector";
 
 class ArborExtension {
@@ -44,6 +46,7 @@ class ArborExtension {
   private chatDetector: ChatDetector;
   private uiInjector: UIInjector;
   private graphPanZoom: GraphPanZoom;
+  private branchContextManager: BranchContextManager;
 
   constructor(platform: "chatgpt" | "gemini" | "perplexity") {
     this.platform = platform;
@@ -64,6 +67,7 @@ class ArborExtension {
       this.handleSidebarAction(action, data)
     );
     this.graphPanZoom = new GraphPanZoom();
+    this.branchContextManager = new BranchContextManager(platform);
 
     this.init();
   }
@@ -359,7 +363,7 @@ class ArborExtension {
         await this.createNewTree();
         break;
       case "createBranch":
-        await this.createBranch();
+        await this.showBranchDialog();
         break;
       case "selectTree":
         await this.selectTree(data);
@@ -400,17 +404,68 @@ class ArborExtension {
     }
   }
 
-  private async createBranch() {
+  private async showBranchDialog() {
     if (!this.state.currentTreeId || !this.state.currentNodeId) {
       this.showNotification("No active tree or node selected", "error");
       return;
     }
 
-    this.showNotification("Opening new chat to create branch...", "success");
-    window.open(
-      this.platform === "chatgpt" ? "https://chatgpt.com/" : "",
-      "_blank"
+    // Show connection type selection dialog
+    const connectionType = await BranchConnectionTypeDialog.show("extends");
+
+    if (!connectionType) {
+      // User cancelled
+      return;
+    }
+
+    // Proceed with branch creation using selected connection type
+    await this.createBranch(connectionType);
+  }
+
+  private async createBranch(connectionType: ConnectionType = "extends") {
+    if (!this.state.currentTreeId || !this.state.currentNodeId) {
+      this.showNotification("No active tree or node selected", "error");
+      return;
+    }
+
+    const tree = this.state.trees[this.state.currentTreeId];
+    const parentNode = tree?.nodes[this.state.currentNodeId];
+
+    if (!parentNode) {
+      this.showNotification("Parent node not found", "error");
+      return;
+    }
+
+    // Create branch context using the BranchContextManager with selected connection type
+    const result = await this.branchContextManager.createBranchContext({
+      parentTitle: parentNode.title,
+      connectionType,
+      messageCount: 10,
+    });
+
+    if (!result.success) {
+      // If clipboard copy failed, show the context in an alert as fallback
+      if (result.context) {
+        alert(`Context (copy manually):\n\n${result.context}`);
+      } else {
+        this.showNotification(
+          `Failed to create branch context: ${result.error || "Unknown error"}`,
+          "error"
+        );
+      }
+      return;
+    }
+
+    // Show success notification
+    this.showNotification(
+      "Context copied! Opening new chat - paste (Ctrl+V) to continue",
+      "success"
     );
+
+    // Open new chat after a short delay
+    setTimeout(() => {
+      this.branchContextManager.openNewChat();
+    }, 1000);
   }
 
   private async selectTree(treeId: string) {
