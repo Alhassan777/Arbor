@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useConversationStore } from '../../store/conversationStore';
-import { useToastStore } from '../../store/toastStore';
-import TreeHeader from './TreeHeader';
-import TreeSearch from './TreeSearch';
-import TreeNode from './TreeNode';
-import ConfirmDialog from '../ConfirmDialog';
-import NameTreeDialog from '../NameTreeDialog';
+import { useState, useEffect } from "react";
+import { useConversationStore } from "../../store/conversationStore";
+import { useToastStore } from "../../store/toastStore";
+import TreeHeader from "./TreeHeader";
+import TreeSearch from "./TreeSearch";
+import TreeNode from "./TreeNode";
+import ConfirmDialog from "../ConfirmDialog";
+import NameTreeDialog from "../NameTreeDialog";
 
 interface TreeNodeWrapperProps {
   nodeId: string;
@@ -32,7 +32,10 @@ function TreeNodeWrapper({
   if (!node) return null;
 
   // Filter based on search query
-  if (searchQuery && !node.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+  if (
+    searchQuery &&
+    !node.title.toLowerCase().includes(searchQuery.toLowerCase())
+  ) {
     return null;
   }
 
@@ -79,10 +82,17 @@ interface ConversationTreeProps {
 }
 
 export default function ConversationTree({ onToggle }: ConversationTreeProps) {
-  const { tree, initializeNewTree, deleteNode, moveNode, updateTreeName } = useConversationStore();
+  const {
+    tree,
+    isLoading,
+    initializeNewTree,
+    deleteNode,
+    moveNode,
+    updateTreeName,
+  } = useConversationStore();
   const { addToast } = useToastStore();
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState<string | null>(null);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
@@ -114,13 +124,13 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
   const handleCreateTree = async (name: string) => {
     await initializeNewTree(name);
     setNewTreeDialogOpen(false);
-    addToast(`Created tree: ${name}`, 'success');
+    addToast(`Created tree: ${name}`, "success");
   };
 
   const handleRenameTree = async (name: string) => {
     await updateTreeName(name);
     setRenameDialogOpen(false);
-    addToast('Tree renamed', 'success');
+    addToast("Tree renamed", "success");
   };
 
   const handleDelete = (nodeId: string) => {
@@ -145,37 +155,48 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
     await moveNode(nodeId, newParentId);
   };
 
-  if (!tree) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <div className="text-text-muted text-sm">Loading...</div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div className="h-full flex flex-col">
-        <TreeHeader
-          treeName={tree.name}
-          onNewChat={handleNewChat}
-          onToggle={onToggle}
-          onRename={() => setRenameDialogOpen(true)}
-        />
-        <TreeSearch value={searchQuery} onChange={setSearchQuery} />
-        <div className="flex-1 overflow-y-auto">
-          {tree.rootNodeId && (
-            <TreeNodeWrapper
-              nodeId={tree.rootNodeId}
-              depth={0}
-              expandedNodes={expandedNodes}
-              onToggleExpand={handleToggleExpand}
-              searchQuery={searchQuery}
-              onDelete={handleDelete}
-              onMove={handleMove}
+      <div className="h-full flex flex-col relative">
+        {tree ? (
+          <>
+            <TreeHeader
+              treeName={tree.name}
+              onNewChat={handleNewChat}
+              onToggle={onToggle}
+              onRename={() => setRenameDialogOpen(true)}
             />
-          )}
-        </div>
+            <TreeSearch value={searchQuery} onChange={setSearchQuery} />
+            <div className="flex-1 overflow-y-auto">
+              {tree.rootNodeId && (
+                <TreeNodeWrapper
+                  nodeId={tree.rootNodeId}
+                  depth={0}
+                  expandedNodes={expandedNodes}
+                  onToggleExpand={handleToggleExpand}
+                  searchQuery={searchQuery}
+                  onDelete={handleDelete}
+                  onMove={handleMove}
+                />
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-text-muted text-sm">Loading tree…</div>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="absolute inset-0 bg-midnight-soil/60 backdrop-blur-sm flex items-center justify-center z-10">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-6 w-6 rounded-full border-2 border-canopy border-t-transparent animate-spin" />
+              <span className="text-xs text-text-secondary">
+                Updating tree…
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       <NameTreeDialog
@@ -186,14 +207,16 @@ export default function ConversationTree({ onToggle }: ConversationTreeProps) {
         onCancel={() => setNewTreeDialogOpen(false)}
       />
 
-      <NameTreeDialog
-        isOpen={renameDialogOpen}
-        title="Rename Tree"
-        initialValue={tree.name}
-        placeholder="Enter new tree name..."
-        onConfirm={handleRenameTree}
-        onCancel={() => setRenameDialogOpen(false)}
-      />
+      {tree && (
+        <NameTreeDialog
+          isOpen={renameDialogOpen}
+          title="Rename Tree"
+          initialValue={tree.name}
+          placeholder="Enter new tree name..."
+          onConfirm={handleRenameTree}
+          onCancel={() => setRenameDialogOpen(false)}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={deleteConfirmOpen}

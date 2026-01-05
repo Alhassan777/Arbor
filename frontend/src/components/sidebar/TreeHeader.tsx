@@ -17,13 +17,18 @@ export default function TreeHeader({
 }: TreeHeaderProps) {
   const [isHovering, setIsHovering] = useState(false);
 
+  const displayName =
+    treeName && treeName.trim() && treeName !== "undefined"
+      ? treeName
+      : "Unnamed Tree";
+
   return (
-    <div className="px-5 py-4 border-b border-branch bg-gradient-to-br from-forest-floor to-midnight-soil backdrop-blur-sm">
+    <div className="px-6 py-5 border-b border-branch bg-gradient-to-br from-forest-floor to-midnight-soil/95 backdrop-blur-md shadow-dappled">
       {/* Current Tree Label Row */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <GitBranch className="h-4 w-4 text-birch" />
-          <span className="text-xs font-medium text-lichen uppercase tracking-wide">
+          <span className="text-[0.75rem] font-semibold text-lichen uppercase tracking-[0.12em]">
             Current Tree
           </span>
         </div>
@@ -49,8 +54,8 @@ export default function TreeHeader({
           <div className="p-2 bg-canopy/10 rounded-xl flex-shrink-0">
             <Sparkles className="h-4 w-4 text-canopy" />
           </div>
-          <h2 className="text-sm font-bold text-parchment tracking-wide truncate flex-1">
-            {treeName}
+          <h2 className="text-base font-semibold text-parchment tracking-tight truncate flex-1">
+            {displayName}
           </h2>
           {isHovering && onRename && (
             <Edit2 className="h-3 w-3 text-canopy flex-shrink-0 opacity-70" />
