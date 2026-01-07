@@ -81,5 +81,21 @@ export class SidebarListeners {
         }
       });
     });
+
+    // Tree node click handlers (for navigation)
+    document.querySelectorAll(".tree-node").forEach((node) => {
+      node.addEventListener("click", (e) => {
+        // Don't navigate if clicking on delete button
+        const target = e.target as HTMLElement;
+        if (target.classList.contains("delete-node-btn") || target.closest(".delete-node-btn")) {
+          return;
+        }
+
+        const nodeId = (node as HTMLElement).dataset.nodeId;
+        if (nodeId) {
+          this.onSidebarAction("navigateToNode", nodeId);
+        }
+      });
+    });
   }
 }

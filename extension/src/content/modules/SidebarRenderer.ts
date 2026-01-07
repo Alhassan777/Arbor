@@ -6,24 +6,57 @@ import type { ChatTree } from "../../types";
 import type { AvailableChat } from "./UIInjector";
 
 export class SidebarRenderer {
+  /**
+   * Safely get extension resource URL, handling invalidated extension context
+   */
+  private static getResourceURL(path: string): string {
+    try {
+      if (
+        typeof chrome !== "undefined" &&
+        chrome.runtime &&
+        chrome.runtime.getURL
+      ) {
+        return chrome.runtime.getURL(path);
+      }
+    } catch (error) {
+      // Extension context invalidated - return empty string or data URI fallback
+      console.warn(
+        "🌳 Arbor: Extension context invalidated, using fallback for resource:",
+        path
+      );
+    }
+    // Return empty string as fallback - the image will fail to load but won't crash
+    return "";
+  }
+
   static render(
     trees: Record<string, ChatTree>,
     currentTreeId: string | null,
     untrackedChats: AvailableChat[]
   ): string {
     const allTrees = Object.values(trees);
+    const logoURL = this.getResourceURL("icons/logo.webp");
 
     return `
       <div class="arbor-header" style="
-        padding: 18px 20px;
+        padding: 16px 20px;
         border-bottom: 1px solid #2a3530;
         background: linear-gradient(135deg, #131917 0%, #0c0f0e 100%);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
+        min-width: 0;
       ">
-        <h2 style="font-size: 17px; font-weight: 700; color: #e8efe9; margin: 0;">🌳 Arbor</h2>
-        <div style="display: flex; gap: 8px;">
+        <h2 style="font-size: 20px; font-weight: 700; color: #e8efe9; margin: 0; display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; overflow: hidden;">
+          ${
+            logoURL
+              ? `<img src="${logoURL}" alt="Arbor" style="width: 100px; height: 100px; object-fit: contain; flex-shrink: 0;" />`
+              : '<span style="width: 100px; height: 100px; flex-shrink: 0;"></span>'
+          }
+          <span style="white-space: nowrap;">Arbor</span>
+        </h2>
+        <div style="display: flex; gap: 8px; flex-shrink: 0;">
           <button id="close-sidebar-btn" style="
             padding: 6px 10px;
             background: #1c2420;
@@ -34,6 +67,7 @@ export class SidebarRenderer {
             font-size: 11px;
             font-weight: 600;
             transition: all 0.2s ease;
+            white-space: nowrap;
           ">
             ✕ Close
           </button>
@@ -240,7 +274,11 @@ export class SidebarRenderer {
         <div style="flex: 1;">
           <div style="font-size: 13px; font-weight: 600; color: #e8efe9; margin-bottom: 4px;">
             ${platformEmoji} ${node.title}
-            ${isRootNode ? ' <span style="font-size: 10px; color: #6a7570;">(Root)</span>' : ''}
+            ${
+              isRootNode
+                ? ' <span style="font-size: 10px; color: #6a7570;">(Root)</span>'
+                : ""
+            }
           </div>
           <div style="font-size: 11px; color: #9caba3;">
             ${

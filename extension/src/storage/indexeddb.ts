@@ -6,14 +6,30 @@ const DB_VERSION = 1;
 
 class ArborDatabase {
   private db: IDBDatabase | null = null;
+  private initPromise: Promise<void> | null = null;
 
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    // If already initialized, return immediately
+    if (this.db) {
+      return;
+    }
+
+    // If initialization is in progress, return the existing promise
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    // Start initialization and store the promise
+    this.initPromise = new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        this.initPromise = null;
+        reject(request.error);
+      };
       request.onsuccess = () => {
         this.db = request.result;
+        this.initPromise = null;
         resolve();
       };
 
@@ -36,6 +52,8 @@ class ArborDatabase {
         }
       };
     });
+
+    return this.initPromise;
   }
 
   // Tree operations
@@ -113,7 +131,16 @@ class ArborDatabase {
 
   // State operations
   async saveState(state: Partial<ExtensionState>): Promise<void> {
-    const transaction = this.db!.transaction(['state'], 'readwrite');
+    if (!this.db) {
+      // Database not initialized yet, try to initialize
+      await this.init();
+    }
+
+    if (!this.db) {
+      throw new Error("Database initialization failed");
+    }
+
+    const transaction = this.db.transaction(['state'], 'readwrite');
     const store = transaction.objectStore('state');
 
     for (const [key, value] of Object.entries(state)) {
@@ -122,18 +149,34 @@ class ArborDatabase {
   }
 
   async getState(): Promise<Partial<ExtensionState>> {
-    const transaction = this.db!.transaction(['state'], 'readonly');
-    const store = transaction.objectStore('state');
-    const items = await this.promisify<Array<{ key: string; value: any }>>(
-      store.getAll()
-    );
+    if (!this.db) {
+      // Database not initialized yet, try to initialize
+      await this.init();
+    }
 
-    const state: any = {};
-    items.forEach(item => {
-      state[item.key] = item.value;
-    });
+    if (!this.db) {
+      // If initialization failed, return empty state
+      return {};
+    }
 
-    return state;
+    try {
+      const transaction = this.db.transaction(['state'], 'readonly');
+      const store = transaction.objectStore('state');
+      const items = await this.promisify<Array<{ key: string; value: any }>>(
+        store.getAll()
+      );
+
+      const state: any = {};
+      items.forEach(item => {
+        state[item.key] = item.value;
+      });
+
+      return state;
+    } catch (error) {
+      // Handle case where transaction fails (e.g., database closed)
+      console.warn("🌳 Arbor: Failed to get state from database:", error);
+      return {};
+    }
   }
 
   // Helper to convert IDBRequest to Promise

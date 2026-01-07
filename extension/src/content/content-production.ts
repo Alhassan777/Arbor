@@ -7,6 +7,7 @@
 
 import { db } from "./db";
 import { detectPlatform } from "./platformDetector";
+import { chatgptPlatform } from "../platforms/chatgpt";
 import { GraphRenderer } from "./modules/GraphRenderer";
 import { ConnectionLabelsManager } from "./modules/ConnectionLabels";
 import { SidebarObserver } from "./modules/SidebarObserver";
@@ -18,7 +19,10 @@ import { ChatDetector } from "./modules/ChatDetector";
 import { UIInjector } from "./modules/UIInjector";
 import { GraphPanZoom } from "./modules/GraphPanZoom";
 import { BranchContextManager } from "./modules/BranchContextManager";
-import { BranchConnectionTypeDialog } from "./modules/BranchConnectionTypeDialog";
+import {
+  BranchConnectionTypeDialog,
+  type BranchDialogResult,
+} from "./modules/BranchConnectionTypeDialog";
 import type { ExtensionState, ChatTree, ConnectionType } from "../types";
 import type { AvailableChat } from "./modules/ChatDetector";
 
@@ -74,6 +78,18 @@ class ArborExtension {
 
   async init() {
     console.log("🌳 Arbor Extension: Initializing...");
+    
+    // Listen for model download completion
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === "model-download-complete") {
+        console.log(`🌳 Arbor: ✅ Model downloaded successfully in ${message.loadTime}s`);
+        this.showNotification(
+          `Model ready! Downloaded in ${message.loadTime}s`,
+          "success"
+        );
+      }
+      return false;
+    });
 
     await db.init();
     console.log("✅ IndexedDB initialized");
@@ -380,6 +396,9 @@ class ArborExtension {
       case "deleteNode":
         await this.deleteNodeFromTree(data);
         break;
+      case "navigateToNode":
+        await this.handleNodeClick(data);
+        break;
     }
   }
 
@@ -405,42 +424,55 @@ class ArborExtension {
   }
 
   private async showBranchDialog() {
-    if (!this.state.currentTreeId || !this.state.currentNodeId) {
-      this.showNotification("No active tree or node selected", "error");
+    // Check if we're on a chat page
+    const currentChat = this.chatDetector.detectCurrentChat();
+    if (!currentChat) {
+      this.showNotification(
+        "You must be on a ChatGPT conversation page to create a branch",
+        "error"
+      );
       return;
     }
 
-    // Show connection type selection dialog
-    const connectionType = await BranchConnectionTypeDialog.show("extends");
+    // Show branch configuration dialog
+    const config = await BranchConnectionTypeDialog.show("extends");
 
-    if (!connectionType) {
+    if (!config) {
       // User cancelled
       return;
     }
 
-    // Proceed with branch creation using selected connection type
-    await this.createBranch(connectionType);
+    // Proceed with branch creation using selected configuration
+    await this.createBranch(config);
   }
 
-  private async createBranch(connectionType: ConnectionType = "extends") {
-    if (!this.state.currentTreeId || !this.state.currentNodeId) {
-      this.showNotification("No active tree or node selected", "error");
+  private async createBranch(config: BranchDialogResult) {
+    // Get the current chat from the page (not from selected tree node)
+    const currentChat = this.chatDetector.detectCurrentChat();
+    if (!currentChat) {
+      this.showNotification(
+        "You must be on a ChatGPT conversation page to create a branch",
+        "error"
+      );
       return;
     }
 
-    const tree = this.state.trees[this.state.currentTreeId];
-    const parentNode = tree?.nodes[this.state.currentNodeId];
+    // Use the current page's chat title (more robust method from platform)
+    const currentTitle =
+      this.platform === "chatgpt"
+        ? chatgptPlatform.detectChatTitle() || currentChat.title
+        : currentChat.title;
 
-    if (!parentNode) {
-      this.showNotification("Parent node not found", "error");
-      return;
-    }
-
-    // Create branch context using the BranchContextManager with selected connection type
+    // Create branch context using the BranchContextManager with user-selected configuration
+    // Messages will be extracted from the current page, title from current page
     const result = await this.branchContextManager.createBranchContext({
-      parentTitle: parentNode.title,
-      connectionType,
-      messageCount: 10,
+      parentTitle: currentTitle,
+      connectionType: config.connectionType,
+      formatType: config.formatType,
+      messageLength: config.messageLength,
+      messageCount: config.messageCount || 10,
+      customConnectionType: config.customConnectionType,
+      customPrompt: config.customPrompt,
     });
 
     if (!result.success) {

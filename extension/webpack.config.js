@@ -6,6 +6,7 @@ module.exports = {
     // Use production version with real chat tracking
     content: './src/content/content-production.ts',
     background: './src/background/background.ts',
+    options: './src/options/options.ts',
   },
   module: {
     rules: [
@@ -19,10 +20,35 @@ module.exports = {
   resolve: {
     extensions: ['.tsx', '.ts', '.js'],
   },
+  experiments: {
+    topLevelAwait: true,
+  },
   output: {
     filename: '[name].js',
     path: path.resolve(__dirname, 'dist'),
     clean: true,
+  },
+  optimization: {
+    splitChunks: {
+      chunks: (chunk) => {
+        // Don't code-split the background script
+        // Service workers can't load dynamic chunks via import()
+        // Bundle everything into background.js
+        return chunk.name !== 'background';
+      },
+      cacheGroups: {
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true,
+        },
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          reuseExistingChunk: true,
+        },
+      },
+    },
   },
   plugins: [
     new CopyPlugin({
@@ -33,6 +59,14 @@ module.exports = {
           from: 'src/content/sidebar.html',
           to: 'sidebar.html',
           noErrorOnMissing: true
+        },
+        {
+          from: 'src/options/options.html',
+          to: 'options.html',
+        },
+        {
+          from: 'src/options/options.css',
+          to: 'options.css',
         },
       ],
     }),

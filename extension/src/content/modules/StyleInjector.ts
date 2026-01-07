@@ -49,7 +49,7 @@ export class StyleInjector {
 
       #arbor-sidebar-container {
         left: 0;
-        width: 280px;
+        width: 320px;
         border-right: 1px solid #2a3530;
         transform: translateX(0);
         box-shadow: 2px 0 16px rgba(0, 0, 0, 0.5);
