@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Arbor - Chat Tree Navigator",
   "description": "Organize your AI chats hierarchically across ChatGPT, Gemini, and Perplexity",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "permissions": [
     "storage",
     "activeTab",
@@ -36,6 +36,7 @@
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
   "options_page": "options.html",
+  "privacy_policy": "PRIVACY_POLICY.md",
   "icons": {
     "16": "icons/logo16.png",
     "48": "icons/logo48.png",

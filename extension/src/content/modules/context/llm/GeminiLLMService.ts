@@ -7,6 +7,7 @@
 import type { Message } from "../ContextFormatter";
 import type { LLMService, SummaryOptions } from "./LLMService";
 import type { ConnectionType } from "../../../../types";
+import { logger } from "../../../../utils/logger";
 
 interface GeminiLLMConfig {
   model?: string;
@@ -24,15 +25,6 @@ function isExtensionContextAvailable(): boolean {
   }
 }
 
-/**
- * Redact API key from strings for safe logging
- */
-function redactApiKey(text: string): string {
-  if (!text) return text;
-  // Replace API keys (AIza...) with redacted version
-  return text.replace(/AIza[^\s"']+/g, "AIza...****");
-}
-
 export class GeminiLLMService implements LLMService {
   private config: GeminiLLMConfig;
   private defaultModel = "gemini-2.0-flash-exp";
@@ -47,14 +39,12 @@ export class GeminiLLMService implements LLMService {
 
   async isAvailable(): Promise<boolean> {
     if (!this.config.enabled) {
-      console.log("🌳 Arbor: Gemini LLM is disabled in config");
+      logger.debug("Gemini LLM is disabled in config");
       return false;
     }
 
     if (!isExtensionContextAvailable()) {
-      console.log(
-        "🌳 Arbor: Extension context not available for Gemini LLM"
-      );
+      logger.debug("Extension context not available for Gemini LLM");
       return false;
     }
 
@@ -81,26 +71,20 @@ export class GeminiLLMService implements LLMService {
       });
 
       if (!response || !response.success) {
-        console.log(
-          "🌳 Arbor: Gemini LLM availability check failed:",
-          response?.error || "Unknown error"
-        );
+        logger.debug("Gemini LLM availability check failed:", response?.error || "Unknown error");
         return false;
       }
 
       const isAvailable = response.available === true;
       if (isAvailable) {
-        console.log("🌳 Arbor: ✅ Gemini LLM is available");
+        logger.debug("Gemini LLM is available");
       } else {
-        console.log("🌳 Arbor: ❌ Gemini LLM is not available (API key missing or invalid)");
+        logger.debug("Gemini LLM is not available (API key missing or invalid)");
       }
 
       return isAvailable;
     } catch (error) {
-      console.log(
-        "🌳 Arbor: ❌ Gemini LLM availability check failed:",
-        error instanceof Error ? error.message : String(error)
-      );
+      logger.debug("Gemini LLM availability check failed:", error instanceof Error ? error.message : String(error));
       return false;
     }
   }
@@ -134,9 +118,7 @@ export class GeminiLLMService implements LLMService {
         );
       }
 
-      console.log(
-        `🌳 Arbor: Requesting summarization from Gemini LLM (model: ${this.config.model})`
-      );
+      logger.debug(`Requesting summarization from Gemini LLM (model: ${this.config.model})`);
 
       // Call summarization via background script
       const response = await new Promise<any>((resolve, reject) => {
@@ -175,15 +157,14 @@ export class GeminiLLMService implements LLMService {
 
       if (!response.success) {
         const errorMsg = response.error || "Summarization failed";
-        // Ensure we don't log API keys
-        throw new Error(redactApiKey(errorMsg));
+        throw new Error(errorMsg);
       }
 
-      console.log("🌳 Arbor: ✅ Gemini LLM summarization completed");
+      logger.debug("Gemini LLM summarization completed");
       return response.text?.trim() || "";
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      throw new Error(redactApiKey(errorMessage));
+      throw new Error(errorMessage);
     }
   }
 

@@ -4,27 +4,36 @@
  */
 
 // Import the secure storage utility functions
-// Note: In a web page context, we need to use chrome.storage directly
-// since we can't import TypeScript modules directly
-
-const STORAGE_KEY = "gemini_api_key";
+import {
+  setApiKey,
+  getApiKey,
+  removeApiKey,
+  validateApiKeyFormat,
+} from "../storage/apiKeyStorage";
+import { logger } from "../utils/logger";
 
 // DOM elements
 const apiKeyForm = document.getElementById("apiKeyForm") as HTMLFormElement;
 const apiKeyInput = document.getElementById("apiKey") as HTMLInputElement;
-const toggleVisibilityBtn = document.getElementById("toggleVisibility") as HTMLButtonElement;
+const toggleVisibilityBtn = document.getElementById(
+  "toggleVisibility"
+) as HTMLButtonElement;
 const saveBtn = document.getElementById("saveBtn") as HTMLButtonElement;
 const saveBtnText = document.getElementById("saveBtnText") as HTMLSpanElement;
-const saveBtnLoading = document.getElementById("saveBtnLoading") as HTMLSpanElement;
+const saveBtnLoading = document.getElementById(
+  "saveBtnLoading"
+) as HTMLSpanElement;
 const testBtn = document.getElementById("testBtn") as HTMLButtonElement;
 const removeBtn = document.getElementById("removeBtn") as HTMLButtonElement;
-const statusMessage = document.getElementById("statusMessage") as HTMLDivElement;
+const statusMessage = document.getElementById(
+  "statusMessage"
+) as HTMLDivElement;
 
 // State
 let isPasswordVisible = false;
 
 /**
- * Redact API key for safe logging
+ * Redact API key for display in UI
  */
 function redactApiKey(key: string | null | undefined): string {
   if (!key) return "[no key]";
@@ -33,33 +42,12 @@ function redactApiKey(key: string | null | undefined): string {
 }
 
 /**
- * Validate API key format
- */
-function validateApiKeyFormat(key: string): { valid: boolean; error?: string } {
-  if (!key || typeof key !== "string") {
-    return { valid: false, error: "API key is required" };
-  }
-
-  const trimmed = key.trim();
-
-  if (trimmed.length < 30) {
-    return { valid: false, error: "API key is too short (minimum 30 characters)" };
-  }
-
-  if (!trimmed.startsWith("AIza")) {
-    return { valid: false, error: "Invalid API key format (must start with 'AIza')" };
-  }
-
-  return { valid: true };
-}
-
-/**
  * Show status message
  */
 function showStatus(message: string, type: "success" | "error" | "info") {
   statusMessage.textContent = message;
   statusMessage.className = `status-message ${type} show`;
-  
+
   // Auto-hide after 5 seconds for success/info messages
   if (type === "success" || type === "info") {
     setTimeout(() => {
@@ -69,83 +57,28 @@ function showStatus(message: string, type: "success" | "error" | "info") {
 }
 
 /**
- * Load existing API key (masked)
+ * Load existing API key (masked) using encrypted storage
  */
-async function loadApiKey() {
+async function loadApiKeyForDisplay() {
   try {
-    return new Promise<string | null>((resolve) => {
-      chrome.storage.local.get([STORAGE_KEY], (result) => {
-        if (chrome.runtime.lastError) {
-          console.error("Error loading API key:", chrome.runtime.lastError.message);
-          resolve(null);
-          return;
-        }
-        resolve(result[STORAGE_KEY] || null);
-      });
-    });
+    const key = await getApiKey();
+    return key;
   } catch (error) {
-    console.error("Failed to load API key:", error);
+    logger.error("Failed to load API key:", error);
     return null;
   }
 }
 
-/**
- * Save API key
- */
-async function saveApiKey(apiKey: string): Promise<{ success: boolean; error?: string }> {
-  // Validate format
-  const validation = validateApiKeyFormat(apiKey);
-  if (!validation.valid) {
-    return { success: false, error: validation.error };
-  }
+// saveApiKey is imported from apiKeyStorage module
 
-  const trimmed = apiKey.trim();
-
-  try {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [STORAGE_KEY]: trimmed }, () => {
-        if (chrome.runtime.lastError) {
-          resolve({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
-        console.log("API key saved", redactApiKey(trimmed));
-        resolve({ success: true });
-      });
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-/**
- * Remove API key
- */
-async function removeApiKey(): Promise<{ success: boolean; error?: string }> {
-  try {
-    return new Promise((resolve) => {
-      chrome.storage.local.remove([STORAGE_KEY], () => {
-        if (chrome.runtime.lastError) {
-          resolve({ success: false, error: chrome.runtime.lastError.message });
-          return;
-        }
-        resolve({ success: true });
-      });
-    });
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
+// removeApiKey is imported from apiKeyStorage module
 
 /**
  * Validate API key with background script
  */
-async function validateApiKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+async function validateApiKey(
+  apiKey: string
+): Promise<{ valid: boolean; error?: string }> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
       {
@@ -191,11 +124,12 @@ function togglePasswordVisibility() {
  */
 async function init() {
   // Load existing API key
-  const existingKey = await loadApiKey();
+  const existingKey = await loadApiKeyForDisplay();
   if (existingKey) {
     // Show masked version: show first 7 chars + dots
     apiKeyInput.value = redactApiKey(existingKey);
-    apiKeyInput.placeholder = "API key is already saved (enter new key to replace)";
+    apiKeyInput.placeholder =
+      "API key is already saved (enter new key to replace)";
   }
 
   // Event listeners
@@ -213,7 +147,10 @@ async function init() {
 
     // Don't save if it's the redacted version
     if (apiKey.includes("...****")) {
-      showStatus("Please enter a new API key (the current key is hidden for security)", "info");
+      showStatus(
+        "Please enter a new API key (the current key is hidden for security)",
+        "info"
+      );
       return;
     }
 
@@ -241,7 +178,7 @@ async function init() {
       }
 
       // Save the key
-      const result = await saveApiKey(apiKey);
+      const result = await setApiKey(apiKey);
       if (result.success) {
         showStatus("✅ API key saved successfully!", "success");
         apiKeyInput.value = redactApiKey(apiKey);
@@ -277,7 +214,10 @@ async function init() {
     try {
       const validation = await validateApiKey(apiKey);
       if (validation.valid) {
-        showStatus("✅ Connection test successful! API key is valid.", "success");
+        showStatus(
+          "✅ Connection test successful! API key is valid.",
+          "success"
+        );
       } else {
         showStatus(validation.error || "Connection test failed", "error");
       }
@@ -293,7 +233,11 @@ async function init() {
   });
 
   removeBtn.addEventListener("click", async () => {
-    if (!confirm("Are you sure you want to remove your API key? You'll need to enter it again to use Gemini features.")) {
+    if (
+      !confirm(
+        "Are you sure you want to remove your API key? You'll need to enter it again to use Gemini features."
+      )
+    ) {
       return;
     }
 

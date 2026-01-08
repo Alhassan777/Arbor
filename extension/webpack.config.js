@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
   entry: {
@@ -51,6 +52,10 @@ module.exports = {
     },
   },
   plugins: [
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      'NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+    }),
     new CopyPlugin({
       patterns: [
         { from: 'manifest.json', to: 'manifest.json' },
@@ -68,8 +73,13 @@ module.exports = {
           from: 'src/options/options.css',
           to: 'options.css',
         },
+        {
+          from: 'PRIVACY_POLICY.md',
+          to: 'PRIVACY_POLICY.md',
+          noErrorOnMissing: true,
+        },
       ],
     }),
   ],
-  devtool: 'inline-source-map',
+  devtool: process.env.NODE_ENV === 'production' ? 'source-map' : 'inline-source-map',
 };

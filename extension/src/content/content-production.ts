@@ -78,11 +78,13 @@ class ArborExtension {
 
   async init() {
     console.log("🌳 Arbor Extension: Initializing...");
-    
+
     // Listen for model download completion
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === "model-download-complete") {
-        console.log(`🌳 Arbor: ✅ Model downloaded successfully in ${message.loadTime}s`);
+        console.log(
+          `🌳 Arbor: ✅ Model downloaded successfully in ${message.loadTime}s`
+        );
         this.showNotification(
           `Model ready! Downloaded in ${message.loadTime}s`,
           "success"
@@ -463,41 +465,80 @@ class ArborExtension {
         ? chatgptPlatform.detectChatTitle() || currentChat.title
         : currentChat.title;
 
-    // Create branch context using the BranchContextManager with user-selected configuration
-    // Messages will be extracted from the current page, title from current page
-    const result = await this.branchContextManager.createBranchContext({
-      parentTitle: currentTitle,
-      connectionType: config.connectionType,
-      formatType: config.formatType,
-      messageLength: config.messageLength,
-      messageCount: config.messageCount || 10,
-      customConnectionType: config.customConnectionType,
-      customPrompt: config.customPrompt,
-    });
-
-    if (!result.success) {
-      // If clipboard copy failed, show the context in an alert as fallback
-      if (result.context) {
-        alert(`Context (copy manually):\n\n${result.context}`);
-      } else {
-        this.showNotification(
-          `Failed to create branch context: ${result.error || "Unknown error"}`,
-          "error"
-        );
-      }
-      return;
-    }
-
-    // Show success notification
-    this.showNotification(
-      "Context copied! Opening new chat - paste (Ctrl+V) to continue",
-      "success"
+    // Show initial loading notification
+    const loadingNotification = this.showLoadingNotification(
+      "Extracting messages..."
     );
 
-    // Open new chat after a short delay
-    setTimeout(() => {
-      this.branchContextManager.openNewChat();
-    }, 1000);
+    try {
+      // Update progress
+      this.updateLoadingNotification(
+        loadingNotification,
+        "Preparing context..."
+      );
+
+      // Create branch context using the BranchContextManager with user-selected configuration
+      // Messages will be extracted from the current page, title from current page
+      let progressCallback: ((message: string) => void) | undefined;
+      if (config.formatType === "summary") {
+        progressCallback = (message: string) => {
+          this.updateLoadingNotification(loadingNotification, message);
+        };
+      }
+
+      const result = await this.branchContextManager.createBranchContext({
+        parentTitle: currentTitle,
+        connectionType: config.connectionType,
+        formatType: config.formatType,
+        messageLength: config.messageLength,
+        messageCount: config.messageCount || 10,
+        customConnectionType: config.customConnectionType,
+        customPrompt: config.customPrompt,
+        progressCallback,
+      });
+
+      // Remove loading notification
+      loadingNotification.remove();
+
+      if (!result.success) {
+        // Import error message utility for user-friendly errors
+        const { formatErrorForUI } = await import("../utils/errorMessages");
+        const errorMessage = formatErrorForUI(result.error);
+
+        // If clipboard copy failed, show the context in an alert as fallback
+        if (result.context) {
+          alert(`Context (copy manually):\n\n${result.context}`);
+        } else {
+          this.showNotification(
+            `Failed to create branch context: ${errorMessage}`,
+            "error"
+          );
+        }
+        return;
+      }
+
+      // Show success notification
+      this.showNotification(
+        "Context copied! Opening new chat - paste (Ctrl+V) to continue",
+        "success"
+      );
+
+      // Open new chat after a short delay
+      setTimeout(() => {
+        this.branchContextManager.openNewChat();
+      }, 1000);
+    } catch (error) {
+      // Remove loading notification on error
+      loadingNotification.remove();
+
+      // Import error message utility for user-friendly errors
+      const { formatErrorForUI } = await import("../utils/errorMessages");
+      const errorMessage = formatErrorForUI(error);
+      this.showNotification(
+        `Failed to create branch context: ${errorMessage}`,
+        "error"
+      );
+    }
   }
 
   private async selectTree(treeId: string) {
@@ -820,6 +861,76 @@ class ArborExtension {
       toast.style.animation = "slideOut 0.3s ease";
       setTimeout(() => toast.remove(), 300);
     }, 3000);
+  }
+
+  /**
+   * Show loading notification with spinner
+   */
+  private showLoadingNotification(message: string): HTMLElement {
+    const toast = document.createElement("div");
+    toast.id = "arbor-loading-notification";
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      background: #3b82f6;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 99999999;
+      font-size: 14px;
+      font-weight: 600;
+      animation: slideIn 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    `;
+
+    const spinner = document.createElement("div");
+    spinner.style.cssText = `
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    `;
+
+    const text = document.createElement("span");
+    text.textContent = message;
+
+    toast.appendChild(spinner);
+    toast.appendChild(text);
+
+    // Add spin animation if not already added
+    if (!document.getElementById("arbor-spinner-style")) {
+      const style = document.createElement("style");
+      style.id = "arbor-spinner-style";
+      style.textContent = `
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(toast);
+    return toast;
+  }
+
+  /**
+   * Update loading notification message
+   */
+  private updateLoadingNotification(
+    toast: HTMLElement,
+    newMessage: string
+  ): void {
+    const textElement = toast.querySelector("span");
+    if (textElement) {
+      textElement.textContent = newMessage;
+    }
   }
 }
 

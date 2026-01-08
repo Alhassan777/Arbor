@@ -1,6 +1,6 @@
 {
   "name": "arbor-extension",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Browser extension for organizing AI chats hierarchically",
   "scripts": {
     "build": "webpack --mode development",

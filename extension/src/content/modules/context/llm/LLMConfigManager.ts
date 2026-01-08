@@ -5,6 +5,7 @@
 import { db } from "../../../db";
 import type { LLMConfig } from "./LLMServiceFactory";
 import { LLMServiceFactory } from "./LLMServiceFactory";
+import { logger } from "../../../../utils/logger";
 
 const CONFIG_KEY = "llm_config";
 
@@ -30,7 +31,7 @@ export class LLMConfigManager {
       // Return default config if none exists
       return LLMServiceFactory.getDefaultConfig();
     } catch (error) {
-      console.warn("Failed to load LLM config (using defaults):", error);
+      logger.warn("Failed to load LLM config (using defaults):", error);
       return LLMServiceFactory.getDefaultConfig();
     }
   }
@@ -45,7 +46,7 @@ export class LLMConfigManager {
         [CONFIG_KEY]: config,
       } as any);
     } catch (error) {
-      console.error("Failed to save LLM config:", error);
+      logger.error("Failed to save LLM config:", error);
       throw error;
     }
   }

@@ -26,6 +26,7 @@ export interface BranchContextOptions {
   formatType?: "hybrid" | "conversation" | "summary"; // Default: 'hybrid'
   customConnectionType?: string; // Custom connection type label if connectionType is 'custom'
   customPrompt?: string; // Custom summarization prompt (optional)
+  progressCallback?: (message: string) => void; // Progress update callback
 }
 
 export class BranchContextManager {
@@ -120,9 +121,11 @@ export class BranchContextManager {
         messageCount = formatType === "summary" ? 6 : 10, // Default to 6 for Summary format
         customConnectionType,
         customPrompt,
+        progressCallback,
       } = options;
 
       // Get all messages from the current chat (we'll process them in the formatter)
+      if (progressCallback) progressCallback("Extracting messages from conversation...");
       const allMessages = this.platformInstance.extractMessages();
 
       // Convert to Message format
@@ -146,6 +149,7 @@ export class BranchContextManager {
       // Ensure we're using the correct formatter for summary mode
       if (formatType === "summary" && formatter instanceof SummaryFormatter) {
         try {
+          if (progressCallback) progressCallback("Summarizing with Gemini AI...");
           const result = await formatter.formatAsync(messages, {
             parentTitle,
             selectedText,
@@ -156,6 +160,7 @@ export class BranchContextManager {
           });
           context = result.context;
           truncationInfo = result.truncationInfo;
+          if (progressCallback) progressCallback("Context generated successfully!");
         } catch (error) {
           // Fallback: try to get LLM service dynamically and retry, or use text-based
           try {
@@ -195,6 +200,7 @@ export class BranchContextManager {
       }
 
       // Copy to clipboard
+      if (progressCallback) progressCallback("Copying to clipboard...");
       const copied = await this.platformInstance.copyToClipboard(context);
 
       if (!copied) {
