@@ -37,7 +37,7 @@ export class UIInjector {
     StyleInjector.inject();
   }
 
-  injectSidebar(
+  async injectSidebar(
     trees: Record<string, ChatTree>,
     currentTreeId: string | null,
     untrackedChats: AvailableChat[]
@@ -51,10 +51,14 @@ export class UIInjector {
       // Sidebar overlays, no need to adjust body margins
     }
 
+    // Check API key availability
+    const hasApiKey = await this.checkApiKeyAvailability();
+
     sidebar.innerHTML = SidebarRenderer.render(
       trees,
       currentTreeId,
-      untrackedChats
+      untrackedChats,
+      hasApiKey
     );
     this.sidebarListeners.attach();
     this.toggleButtonsManager.inject();
@@ -62,6 +66,37 @@ export class UIInjector {
     this.toggleButtonsManager.updateSidebarState(
       !sidebar.classList.contains("hidden")
     );
+
+    // Attach settings button listener if API key notice is shown
+    if (!hasApiKey) {
+      const openSettingsBtn = document.getElementById("open-settings-btn");
+      if (openSettingsBtn) {
+        openSettingsBtn.addEventListener("click", () => {
+          chrome.runtime.sendMessage({ action: "open-options-page" });
+        });
+      }
+    }
+  }
+
+  private async checkApiKeyAvailability(): Promise<boolean> {
+    try {
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage(
+          {
+            action: "gemini-check-availability",
+          },
+          (response) => {
+            if (chrome.runtime.lastError) {
+              resolve(false);
+              return;
+            }
+            resolve(response?.available === true);
+          }
+        );
+      });
+    } catch (error) {
+      return false;
+    }
   }
 
   injectGraphView() {

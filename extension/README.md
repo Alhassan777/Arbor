@@ -1,6 +1,8 @@
 # Arbor Browser Extension
 
-Organize your AI chats hierarchically across ChatGPT, Gemini, and Perplexity.
+Organize your ChatGPT conversations hierarchically with intelligent tree navigation.
+
+**Currently supports ChatGPT only** - Support for other providers (Gemini, Perplexity) coming soon!
 
 **🎉 NOW PRODUCTION-READY!**
 - ✅ Real chat detection

@@ -32,7 +32,8 @@ export class SidebarRenderer {
   static render(
     trees: Record<string, ChatTree>,
     currentTreeId: string | null,
-    untrackedChats: AvailableChat[]
+    untrackedChats: AvailableChat[],
+    hasApiKey: boolean = true
   ): string {
     const allTrees = Object.values(trees);
     const logoURL = this.getResourceURL("icons/logo.webp");
@@ -74,6 +75,43 @@ export class SidebarRenderer {
         </div>
       </div>
       <div class="arbor-content" style="flex: 1; overflow-y: auto;">
+        ${
+          !hasApiKey
+            ? `<div class="api-key-notice" style="
+                margin: 16px;
+                padding: 16px;
+                background: linear-gradient(135deg, rgba(255, 193, 7, 0.15) 0%, rgba(255, 193, 7, 0.08) 100%);
+                border: 1px solid rgba(255, 193, 7, 0.3);
+                border-radius: 8px;
+                color: #ffc107;
+                font-size: 12px;
+                line-height: 1.5;
+              ">
+                <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                  <span style="font-size: 20px; flex-shrink: 0;">🔑</span>
+                  <div style="flex: 1;">
+                    <strong style="display: block; margin-bottom: 6px; font-size: 13px;">API Key Required</strong>
+                    <p style="margin: 0; color: rgba(255, 193, 7, 0.9);">Add your Gemini API key to enable intelligent features like summarization and context generation for your ChatGPT conversations.</p>
+                  </div>
+                </div>
+                <button id="open-settings-btn" style="
+                  width: 100%;
+                  padding: 10px 16px;
+                  background: rgba(255, 193, 7, 0.2);
+                  color: #ffc107;
+                  border: 1px solid rgba(255, 193, 7, 0.4);
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-size: 12px;
+                  font-weight: 600;
+                  transition: all 0.2s ease;
+                  margin-top: 8px;
+                ">
+                  ⚙️ Open Settings
+                </button>
+              </div>`
+            : ""
+        }
         ${
           allTrees.length > 0
             ? this.renderTreesList(allTrees, currentTreeId)

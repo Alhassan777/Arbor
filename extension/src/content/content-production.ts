@@ -195,9 +195,9 @@ class ArborExtension {
     }
   }
 
-  private refreshSidebar() {
+  private async refreshSidebar() {
     const untrackedChats = this.getUntrackedChats();
-    this.uiInjector.injectSidebar(
+    await this.uiInjector.injectSidebar(
       this.state.trees,
       this.state.currentTreeId,
       untrackedChats

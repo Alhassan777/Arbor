@@ -28,6 +28,12 @@ const removeBtn = document.getElementById("removeBtn") as HTMLButtonElement;
 const statusMessage = document.getElementById(
   "statusMessage"
 ) as HTMLDivElement;
+const apiKeyMissingBanner = document.getElementById(
+  "apiKeyMissingBanner"
+) as HTMLDivElement;
+const dismissBannerBtn = document.getElementById(
+  "dismissBanner"
+) as HTMLButtonElement;
 
 // State
 let isPasswordVisible = false;
@@ -120,6 +126,22 @@ function togglePasswordVisibility() {
 }
 
 /**
+ * Show or hide API key missing banner
+ */
+async function updateApiKeyBanner() {
+  const existingKey = await loadApiKeyForDisplay();
+  if (!existingKey) {
+    // Check if user has dismissed the banner (stored in localStorage)
+    const dismissed = localStorage.getItem("arbor_api_key_banner_dismissed");
+    if (!dismissed) {
+      apiKeyMissingBanner.style.display = "block";
+    }
+  } else {
+    apiKeyMissingBanner.style.display = "none";
+  }
+}
+
+/**
  * Initialize the page
  */
 async function init() {
@@ -132,8 +154,17 @@ async function init() {
       "API key is already saved (enter new key to replace)";
   }
 
+  // Check and show API key missing banner
+  await updateApiKeyBanner();
+
   // Event listeners
   toggleVisibilityBtn.addEventListener("click", togglePasswordVisibility);
+
+  // Dismiss banner handler
+  dismissBannerBtn.addEventListener("click", () => {
+    apiKeyMissingBanner.style.display = "none";
+    localStorage.setItem("arbor_api_key_banner_dismissed", "true");
+  });
 
   apiKeyForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -185,6 +216,8 @@ async function init() {
         apiKeyInput.type = "password";
         isPasswordVisible = false;
         toggleVisibilityBtn.textContent = "👁️";
+        // Hide banner after successful save
+        await updateApiKeyBanner();
       } else {
         showStatus(result.error || "Failed to save API key", "error");
       }
@@ -250,6 +283,8 @@ async function init() {
         showStatus("✅ API key removed successfully", "success");
         apiKeyInput.value = "";
         apiKeyInput.placeholder = "AIza...";
+        // Show banner after removal
+        await updateApiKeyBanner();
       } else {
         showStatus(result.error || "Failed to remove API key", "error");
       }

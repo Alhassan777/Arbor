@@ -115,6 +115,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  // Handle open options page request
+  if (request.action === "open-options-page") {
+    chrome.runtime.openOptionsPage();
+    sendResponse({ success: true });
+    return true;
+  }
+
   // Unknown action - still respond to prevent "message port closed" error
   sendResponse({ success: false, error: "Unknown action" });
   return false;

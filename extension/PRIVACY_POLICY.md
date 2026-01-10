@@ -13,7 +13,7 @@ Arbor ("we", "our", or "the extension") is committed to protecting your privacy.
 
 Arbor stores the following information **locally on your device**:
 
-- **Conversation Trees**: Hierarchical organization of your chat conversations from supported platforms (ChatGPT, Gemini, Perplexity)
+- **Conversation Trees**: Hierarchical organization of your ChatGPT conversations (currently ChatGPT only - support for other platforms coming soon)
 - **Chat Metadata**: Titles, timestamps, and relationships between conversations
 - **Extension Settings**: Your preferences for tree organization and display
 
@@ -78,7 +78,7 @@ When you use the Gemini summarization feature:
 Arbor only communicates with:
 
 - **Google Gemini API** (`generativelanguage.googleapis.com`): Only when you explicitly use summarization features, using your own API key
-- **Supported Chat Platforms**: We detect pages from ChatGPT, Gemini, and Perplexity to inject the extension UI, but do not modify or transmit data from these sites
+- **Supported Chat Platforms**: Currently supports ChatGPT only. We detect ChatGPT pages to inject the extension UI, but do not modify or transmit data from these sites. Support for other platforms (Gemini, Perplexity) coming soon.
 
 **We do not use analytics services, tracking pixels, or any other third-party services that collect data.**
 
